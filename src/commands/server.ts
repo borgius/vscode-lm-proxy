@@ -1,8 +1,7 @@
 // サーバー制御コマンド
 import * as vscode from 'vscode'
-import { serverManager } from '../server/manager'
-import { statusBarManager } from '../ui/statusbar'
-
+import { serverManager } from '@/manager/server'
+import { statusBarManager } from '@/ui/statusbar'
 /**
  * サーバー関連のコマンド（起動・停止・状態取得）をVSCodeに登録します。
  * @param {vscode.ExtensionContext} context 拡張機能のグローバルコンテキスト

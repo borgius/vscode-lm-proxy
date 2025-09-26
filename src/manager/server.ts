@@ -1,10 +1,9 @@
 // サーバーの起動・停止・状態管理を行うマネージャー
-
 import type * as http from 'node:http'
 import * as vscode from 'vscode'
-import { statusBarManager } from '../ui/statusbar'
-import { logger } from '../utils/logger'
-import { createServer } from './server'
+import { createServer } from '@/server'
+import { statusBarManager } from '@/ui/statusbar'
+import { logger } from '@/utils/logger'
 
 /**
  * サーバーマネージャークラス

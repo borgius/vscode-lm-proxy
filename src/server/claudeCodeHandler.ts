@@ -4,7 +4,7 @@ import {
   handleAnthropicMessages,
   handleAnthropicModelInfo,
   handleAnthropicModels,
-} from './anthropicHandler'
+} from '@/server/anthropicHandler'
 
 /**
  * Claude Code互換のMessages APIエンドポイントを設定する

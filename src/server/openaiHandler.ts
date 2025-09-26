@@ -8,13 +8,11 @@ import type {
   Model,
 } from 'openai/resources'
 import * as vscode from 'vscode'
-import {
-  convertOpenAIRequestToVSCodeRequest,
-  convertVSCodeResponseToOpenAIResponse,
-} from '../converter/openaiConverter'
-import { modelManager } from '../model/manager'
-import { logger } from '../utils/logger'
-import { getVSCodeModel } from './handler'
+import { convertOpenAIRequestToVSCodeRequest } from '@/converter/openai/convertOpenAIRequestToVSCodeRequest'
+import { convertVSCodeResponseToOpenAIResponse } from '@/converter/openai/convertVSCodeResponseToOpenAIResponse'
+import { modelManager } from '@/manager/model'
+import { getVSCodeModel } from '@/server/handler'
+import { logger } from '@/utils/logger'
 
 /**
  * OpenAI互換のChat Completions APIエンドポイントを設定する

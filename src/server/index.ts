@@ -1,19 +1,19 @@
 // Express.jsサーバーの設定とAPIエンドポイントの実装
 import express from 'express'
-import { logger } from '../utils/logger'
 import {
   setupAnthropicMessagesEndpoints,
   setupAnthropicModelsEndpoints,
-} from './anthropicHandler'
+} from '@/server/anthropicHandler'
 import {
   setupClaudeCodeMessagesEndpoints,
   setupClaudeCodeModelsEndpoints,
-} from './claudeCodeHandler'
-import { setupStatusEndpoint } from './handler'
+} from '@/server/claudeCodeHandler'
+import { setupStatusEndpoint } from '@/server/handler'
 import {
   setupOpenAIChatCompletionsEndpoints,
   setupOpenAIModelsEndpoints,
-} from './openaiHandler'
+} from '@/server/openaiHandler'
+import { logger } from '@/utils/logger'
 
 /**
  * Express.jsサーバーのインスタンスを作成します。

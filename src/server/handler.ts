@@ -1,9 +1,8 @@
 // 共通ハンドラー処理
-
 import type express from 'express'
 import * as vscode from 'vscode'
-import { modelManager } from '../model/manager'
-import { logger } from '../utils/logger'
+import { modelManager } from '@/manager/model'
+import { logger } from '@/utils/logger'
 
 // モジュールスコープでglobalStateを管理
 let _globalState: vscode.Memento | undefined

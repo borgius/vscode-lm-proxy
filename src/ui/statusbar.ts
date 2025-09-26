@@ -1,7 +1,7 @@
 // ステータスバーの管理
 import * as vscode from 'vscode'
-import { modelManager } from '../model/manager'
-import { serverManager } from '../server/manager'
+import { modelManager } from '@/manager/model'
+import { serverManager } from '@/manager/server'
 
 /**
  * ステータスバー管理クラス

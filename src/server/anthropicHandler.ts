@@ -9,13 +9,11 @@ import type {
 } from '@anthropic-ai/sdk/resources'
 import type express from 'express'
 import * as vscode from 'vscode'
-import {
-  convertAnthropicRequestToVSCodeRequest,
-  convertVSCodeResponseToAnthropicResponse,
-} from '../converter/anthropicConverter'
-import { modelManager } from '../model/manager'
-import { logger } from '../utils/logger'
-import { getVSCodeModel } from './handler'
+import { convertAnthropicRequestToVSCodeRequest } from '@/converter/anthropic/convertAnthropicRequestToVSCodeRequest'
+import { convertVSCodeResponseToAnthropicResponse } from '@/converter/anthropic/convertVSCodeResponseToAnthropicResponse'
+import { modelManager } from '@/manager/model'
+import { getVSCodeModel } from '@/server/handler'
+import { logger } from '@/utils/logger'
 
 /**
  * Anthropic互換のMessages APIエンドポイントを設定する
