@@ -17,6 +17,9 @@ export function setupAnthropicMessagesEndpoints(app: express.Express): void {
   app.post('/anthropic/v1/messages', (req, res) =>
     handleAnthropicMessages(req, res, 'anthropic'),
   )
+  app.post('/anthropic/messages/count_tokens', (req, res) =>
+    handleAnthropicCountTokens(req, res, 'anthropic'),
+  )
   app.post('/anthropic/v1/messages/count_tokens', (req, res) =>
     handleAnthropicCountTokens(req, res, 'anthropic'),
   )
