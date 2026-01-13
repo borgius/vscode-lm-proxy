@@ -50,6 +50,8 @@
     "clean": "rimraf ./out",
     "compile": "npm run clean && tsc --sourceMap false",
     "prepare": "husky",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "vscode:prepublish": "npm run compile",
     "watch": "npm run clean && tsc --watch"
   },
@@ -184,7 +186,8 @@
     "lint-staged": "16.1.2",
     "openai": "5.7.0",
     "rimraf": "6.0.1",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "vitest": "4.0.17"
   },
   "extensionDependencies": [],
   "engines": {

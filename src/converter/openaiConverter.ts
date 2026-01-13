@@ -10,14 +10,15 @@ import { generateRandomId } from '../utils'
 import { logger } from '../utils/logger'
 
 /**
- * OpenAI APIのChatCompletionCreateParamsリクエストをVSCode拡張APIのチャットリクエスト形式に変換します。
- * OpenAIのmessages, tools, tool_choice等をVSCodeの型にマッピングし、
- * VSCode APIがサポートしないパラメータはmodelOptionsに集約して将来の拡張性を確保します。
- * OpenAI独自のroleやtool指定など、API間の仕様差異を吸収するための変換ロジックを含みます。
- * @param {ChatCompletionCreateParams} openaiRequest OpenAIのチャットリクエストパラメータ
- * @param {vscode.LanguageModelChat} vsCodeModel VSCodeのLanguageModelChatインスタンス
+ * Converts OpenAI API ChatCompletionCreateParams request to VSCode extension API chat request format.
+ * Maps OpenAI's messages, tools, tool_choice, etc. to VSCode's types,
+ * aggregating unsupported parameters into modelOptions for future extensibility.
+ * Contains conversion logic to absorb specification differences between APIs
+ * such as OpenAI-specific roles and tool specifications.
+ * @param {ChatCompletionCreateParams} openaiRequest OpenAI chat request parameters
+ * @param {vscode.LanguageModelChat} vsCodeModel VSCode LanguageModelChat instance
  * @returns {{ messages: vscode.LanguageModelChatMessage[], options: vscode.LanguageModelChatRequestOptions }}
- *   VSCode拡張API用のチャットメッセージ配列とオプション
+ *   VSCode extension API chat messages array and options
  */
 export async function convertOpenAIRequestToVSCodeRequest(
   openaiRequest: ChatCompletionCreateParams,
@@ -29,7 +30,7 @@ export async function convertOpenAIRequestToVSCodeRequest(
 }> {
   logger.debug('Converting OpenAI request to VSCode request')
 
-  // OpenAIのmessagesをVSCodeのLanguageModelChatMessage[]に変換
+  // Convert OpenAI messages to VSCode LanguageModelChatMessage[]
   const messages: vscode.LanguageModelChatMessage[] =
     openaiRequest.messages.map(msg => {
       let role: vscode.LanguageModelChatMessageRole
@@ -43,7 +44,7 @@ export async function convertOpenAIRequestToVSCodeRequest(
       let prefix = ''
       let name = 'Assistant'
 
-      // ロール変換
+      // Role conversion
       switch (msg.role) {
         case 'user':
           role = vscode.LanguageModelChatMessageRole.User
@@ -75,7 +76,7 @@ export async function convertOpenAIRequestToVSCodeRequest(
           break
       }
 
-      // contentの変換（string or array）
+      // Content conversion (string or array)
       if (typeof msg.content === 'string') {
         content = prefix + msg.content
       } else if (Array.isArray(msg.content)) {
@@ -104,23 +105,23 @@ export async function convertOpenAIRequestToVSCodeRequest(
       return new vscode.LanguageModelChatMessage(role, content, name)
     })
 
-  // --- input tokens計算 ---
+  // --- Calculate input tokens ---
   let inputTokens = 0
   for (const msg of messages) {
     inputTokens += await vsCodeModel.countTokens(msg)
   }
 
-  // --- options生成 ---
+  // --- Generate options ---
   const options: vscode.LanguageModelChatRequestOptions = {}
 
-  // tool_choice変換
+  // Convert tool_choice
   if (
     'tool_choice' in openaiRequest &&
     openaiRequest.tool_choice !== undefined
   ) {
     const tc = openaiRequest.tool_choice
     if (typeof tc === 'string') {
-      // 'auto' | 'required' | 'none' の場合
+      // 'auto' | 'required' | 'none' case
       switch (tc) {
         case 'auto':
           options.toolMode = vscode.LanguageModelChatToolMode.Auto
@@ -129,17 +130,17 @@ export async function convertOpenAIRequestToVSCodeRequest(
           options.toolMode = vscode.LanguageModelChatToolMode.Required
           break
         case 'none':
-          // VSCode APIにOff/Noneは存在しないためAutoにフォールバック
+          // VSCode API doesn't have Off/None, fallback to Auto
           options.toolMode = vscode.LanguageModelChatToolMode.Auto
           break
       }
     } else {
-      // 'function' の場合
+      // 'function' case
       options.toolMode = vscode.LanguageModelChatToolMode.Auto
     }
   }
 
-  // tools変換
+  // Convert tools
   if ('tools' in openaiRequest && Array.isArray(openaiRequest.tools)) {
     options.tools = openaiRequest.tools.map(tool => {
       const base = {
@@ -152,7 +153,7 @@ export async function convertOpenAIRequestToVSCodeRequest(
     })
   }
 
-  // その他のパラメータはmodelOptionsにまとめて渡す
+  // Pass other parameters via modelOptions
   const modelOptions: { [name: string]: any } = {}
   const modelOptionKeys = [
     'audio',
@@ -184,7 +185,7 @@ export async function convertOpenAIRequestToVSCodeRequest(
     'web_search_options',
   ]
 
-  // --- その他のオプションをmodelOptionsに追加 ---
+  // --- Add other options to modelOptions ---
   for (const key of modelOptionKeys) {
     if (key in openaiRequest && (openaiRequest as any)[key] !== undefined) {
       modelOptions[key] = (openaiRequest as any)[key]
@@ -194,7 +195,7 @@ export async function convertOpenAIRequestToVSCodeRequest(
     options.modelOptions = modelOptions
   }
 
-  // --- 変換結果をログ出力 ---
+  // --- Log conversion results ---
   logger.debug('Converted OpenAI request to VSCode request', {
     messages,
     options,
@@ -205,14 +206,14 @@ export async function convertOpenAIRequestToVSCodeRequest(
 }
 
 /**
- * VSCodeのLanguageModelChatResponseをOpenAIのChatCompletionまたはChatCompletionChunk形式に変換します。
- * ストリーミングの場合はChatCompletionChunkのAsyncIterableを返し、
- * 非ストリーミングの場合は全文をChatCompletion形式で返します。
- * @param vscodeResponse VSCodeのLanguageModelChatResponse
- * @param vsCodeModel VSCodeのLanguageModelChatインスタンス
- * @param isStreaming ストリーミングかどうか
- * @param inputTokens 入力トークン数
- * @returns ChatCompletion または AsyncIterable<ChatCompletionChunk>
+ * Converts VSCode LanguageModelChatResponse to OpenAI ChatCompletion or ChatCompletionChunk format.
+ * For streaming, returns an AsyncIterable of ChatCompletionChunk.
+ * For non-streaming, returns the full text as a ChatCompletion.
+ * @param vscodeResponse VSCode LanguageModelChatResponse
+ * @param vsCodeModel VSCode LanguageModelChat instance
+ * @param isStreaming Whether streaming is enabled
+ * @param inputTokens Input token count
+ * @returns ChatCompletion or AsyncIterable<ChatCompletionChunk>
  */
 export function convertVSCodeResponseToOpenAIResponse(
   vscodeResponse: vscode.LanguageModelChatResponse,
@@ -220,17 +221,17 @@ export function convertVSCodeResponseToOpenAIResponse(
   isStreaming: boolean,
   inputTokens: number,
 ): Promise<ChatCompletion> | AsyncIterable<ChatCompletionChunk> {
-  // ストリーミングの場合
+  // Streaming case
   if (isStreaming) {
-    // ChatCompletionChunkのAsyncIterableを返す
+    // Return AsyncIterable of ChatCompletionChunk
     return convertVSCodeStreamToOpenAIChunks(
       vscodeResponse.stream,
       vsCodeModel,
       inputTokens,
     )
   }
-  // 非ストリーミングの場合
-  // 全文をOpenAI ChatCompletionに変換
+  // Non-streaming case
+  // Convert full text to OpenAI ChatCompletion
   return convertVSCodeTextToOpenAICompletion(
     vscodeResponse,
     vsCodeModel,
@@ -239,10 +240,10 @@ export function convertVSCodeResponseToOpenAIResponse(
 }
 
 /**
- * VSCodeのストリームをOpenAIのChatCompletionChunkのAsyncIterableに変換します。
- * @param stream VSCodeのストリーム
- * @param vsCodeModel VSCodeのLanguageModelChatインスタンス
- * @param inputTokens 入力トークン数
+ * Converts VSCode stream to OpenAI ChatCompletionChunk AsyncIterable.
+ * @param stream VSCode stream
+ * @param vsCodeModel VSCode LanguageModelChat instance
+ * @param inputTokens Input token count
  * @returns AsyncIterable<ChatCompletionChunk>
  */
 async function* convertVSCodeStreamToOpenAIChunks(
@@ -252,19 +253,19 @@ async function* convertVSCodeStreamToOpenAIChunks(
   vsCodeModel: vscode.LanguageModelChat,
   inputTokens: number,
 ): AsyncIterable<ChatCompletionChunk> {
-  // チャンクIDとタイムスタンプ生成
+  // Generate chunk ID and timestamp
   const randomId = `chatcmpl-${generateRandomId()}`
   const created = Math.floor(Date.now() / 1000)
 
   let isRoleSent = false
   let toolCallIndex = 0
-  let isToolCalled = false // tool_callが出現したかどうか
+  let isToolCalled = false // Whether tool_call has occurred
 
-  let outputTokens = 0 // 出力トークン数
+  let outputTokens = 0 // Output token count
 
-  // ストリーミングチャンクを生成
+  // Generate streaming chunks
   for await (const part of stream) {
-    // チャンクの初期化
+    // Initialize chunk
     const chunk: ChatCompletionChunk = {
       choices: [
         {
@@ -296,7 +297,7 @@ async function* convertVSCodeStreamToOpenAIChunks(
       },
     }
 
-    // テキストパートの場合
+    // Text part case
     if (isTextPart(part)) {
       if (!isRoleSent) {
         chunk.choices[0].delta.role = 'assistant'
@@ -304,10 +305,10 @@ async function* convertVSCodeStreamToOpenAIChunks(
       }
       chunk.choices[0].delta.content = part.value
 
-      // 出力トークン数を加算
+      // Add to output token count
       outputTokens += await vsCodeModel.countTokens(part.value)
     }
-    // ツールコールパートの場合
+    // Tool call part case
     else if (isToolCallPart(part)) {
       chunk.choices[0].delta.tool_calls = [
         {
@@ -321,7 +322,7 @@ async function* convertVSCodeStreamToOpenAIChunks(
         },
       ]
 
-      // ツールコールもトークン数に加算
+      // Add tool call to token count
       outputTokens += await vsCodeModel.countTokens(JSON.stringify(part))
 
       isToolCalled = true
@@ -330,7 +331,7 @@ async function* convertVSCodeStreamToOpenAIChunks(
     yield chunk
   }
 
-  // 終了チャンクを生成
+  // Generate end chunk
   yield {
     choices: [
       {
@@ -364,10 +365,10 @@ async function* convertVSCodeStreamToOpenAIChunks(
 }
 
 /**
- * 非ストリーミング: VSCodeのLanguageModelChatResponseをOpenAIのChatCompletion形式に変換します。
- * @param vscodeResponse VSCodeのLanguageModelChatResponse
- * @param vsCodeModel VSCodeのLanguageModelChatインスタンス
- * @param inputTokens 入力トークン数
+ * Non-streaming: Converts VSCode LanguageModelChatResponse to OpenAI ChatCompletion format.
+ * @param vscodeResponse VSCode LanguageModelChatResponse
+ * @param vsCodeModel VSCode LanguageModelChat instance
+ * @param inputTokens Input token count
  * @returns Promise<ChatCompletion>
  */
 async function convertVSCodeTextToOpenAICompletion(
@@ -375,27 +376,27 @@ async function convertVSCodeTextToOpenAICompletion(
   vsCodeModel: vscode.LanguageModelChat,
   inputTokens: number,
 ): Promise<ChatCompletion> {
-  // チャットIDとタイムスタンプ生成
+  // Generate chat ID and timestamp
   const id = `chatcmpl-${generateRandomId()}`
   const created = Math.floor(Date.now() / 1000)
 
-  // contentとtoolCallsの初期化
+  // Initialize content and toolCalls
   let textBuffer = ''
   const toolCalls: Chat.Completions.ChatCompletionMessageToolCall[] = []
   let isToolCalled = false
 
-  let outputTokens = 0 // 出力トークン数
+  let outputTokens = 0 // Output token count
 
-  // ストリームからパートを順次取得
+  // Sequentially get parts from stream
   for await (const part of vscodeResponse.stream) {
     if (isTextPart(part)) {
-      // テキストはバッファに連結
+      // Concatenate text to buffer
       textBuffer += part.value
 
-      // 出力トークン数を加算
+      // Add to output token count
       outputTokens += await vsCodeModel.countTokens(part.value)
     } else if (isToolCallPart(part)) {
-      // ツールはtoolCallsに追加
+      // Add tool to toolCalls
       toolCalls.push({
         id: part.callId,
         type: 'function',
@@ -405,14 +406,14 @@ async function convertVSCodeTextToOpenAICompletion(
         },
       })
 
-      // ツールコールもトークン数に加算
+      // Add tool call to token count
       outputTokens += await vsCodeModel.countTokens(JSON.stringify(part))
 
       isToolCalled = true
     }
   }
 
-  // choiceオブジェクトの生成
+  // Generate choice object
   const choice: Chat.Completions.ChatCompletion.Choice = {
     index: 0,
     message: {
@@ -425,7 +426,7 @@ async function convertVSCodeTextToOpenAICompletion(
     finish_reason: isToolCalled ? 'tool_calls' : 'stop',
   }
 
-  // ChatCompletionオブジェクトを返却
+  // Return ChatCompletion object
   return {
     choices: [choice],
     created,

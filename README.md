@@ -96,6 +96,38 @@ curl -X POST http://localhost:4000/openai/v1/chat/completions \
     "stream": true
   }'
 ```
+
+- **Responses** (new): `POST /openai/v1/responses` (supports streaming via the `stream` parameter)
+
+The Responses API is a new OpenAI API that provides a more structured way to interact with language models. It supports the same models as the Chat Completions API but with a different request/response format.
+
+```bash
+curl -X POST http://localhost:4000/openai/v1/responses \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "vscode-lm-proxy",
+    "input": "Hello, how are you?",
+    "stream": true
+  }'
+```
+
+With system instructions and conversation history:
+
+```bash
+curl -X POST http://localhost:4000/openai/v1/responses \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "vscode-lm-proxy",
+    "instructions": "You are a helpful assistant.",
+    "input": [
+      {"role": "user", "content": "What is 2+2?"},
+      {"role": "assistant", "content": "2+2 equals 4."},
+      {"role": "user", "content": "And what is 3+3?"}
+    ],
+    "stream": false
+  }'
+```
+
 - **List Models**: `GET /openai/v1/models`
 
 ```bash
@@ -150,7 +182,7 @@ curl -X POST http://localhost:4000/anthropic/claude/v1/messages \
 - **List Models**: `GET /anthropic/claude/v1/models`
 - **Retrieve Model**: `GET /anthropic/claude/v1/models/{model}`
 
-For detailed information about the request and response formats, please refer to the official [OpenAI API documentation](https://platform.openai.com/docs/api-reference) and [Anthropic API documentation](https://docs.anthropic.com/en/api/overview).
+For detailed information about the request and response formats, please refer to the official [OpenAI API documentation](https://platform.openai.com/docs/api-reference) (including the [Responses API](https://platform.openai.com/docs/api-reference/responses)) and [Anthropic API documentation](https://docs.anthropic.com/en/api/overview).
 
 ---
 

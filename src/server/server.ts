@@ -1,4 +1,4 @@
-// Express.jsサーバーの設定とAPIエンドポイントの実装
+// Express.js server configuration and API endpoint implementation
 import express from 'express'
 import { logger } from '../utils/logger'
 import {
@@ -14,26 +14,27 @@ import {
   setupOpenAIChatCompletionsEndpoints,
   setupOpenAIModelsEndpoints,
 } from './openaiHandler'
+import { setupOpenAIResponsesEndpoints } from './openaiResponsesHandler'
 
 /**
- * Express.jsサーバーのインスタンスを作成します。
- * OpenAI互換APIやステータスエンドポイントなどを含むルーティングを設定します。
- * @returns {express.Express} 設定済みのExpressアプリケーション
+ * Creates an Express.js server instance.
+ * Sets up routing including OpenAI compatible APIs and status endpoints.
+ * @returns {express.Express} Configured Express application
  */
 export function createServer(): express.Express {
   const app = express()
 
-  // JSONのパース設定
+  // JSON parsing configuration
   app.use(express.json({ limit: '100mb' }))
 
-  // リクエスト・レスポンスのロギングミドルウェア
+  // Request/response logging middleware
   app.use((req, res, next) => {
     const startTime = Date.now()
     const path = req.originalUrl || req.url
 
     res.on('finish', () => {
       const responseTime = Date.now() - startTime
-      // 必要に応じてbodyは省略（Express標準ではbodyはここで取得できません）
+      // Body is omitted as needed (not available in standard Express here)
       logger.debug('Response sent', {
         status: res.statusCode,
         path,
@@ -44,22 +45,23 @@ export function createServer(): express.Express {
     next()
   })
 
-  // サーバーステータスエンドポイントのセットアップ
+  // Setup server status endpoint
   setupStatusEndpoint(app)
 
-  // OpenAI互換エンドポイントのセットアップ
+  // Setup OpenAI compatible endpoints
   setupOpenAIChatCompletionsEndpoints(app)
+  setupOpenAIResponsesEndpoints(app)
   setupOpenAIModelsEndpoints(app)
 
-  // Anthropic互換APIエンドポイントのセットアップ
+  // Setup Anthropic compatible API endpoints
   setupAnthropicMessagesEndpoints(app)
   setupAnthropicModelsEndpoints(app)
 
-  // ClaudeCode互換APIエンドポイントのセットアップ
+  // Setup Claude Code compatible API endpoints
   setupClaudeCodeMessagesEndpoints(app)
   setupClaudeCodeModelsEndpoints(app)
 
-  // エラーハンドラーの設定
+  // Error handler setup
   app.use(
     (
       err: Error,

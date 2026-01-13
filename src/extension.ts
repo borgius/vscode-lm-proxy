@@ -1,4 +1,4 @@
-// VSCode拡張機能のエントリーポイント
+// Entry point for VSCode extension
 import * as vscode from 'vscode'
 import { registerCommands } from './commands'
 import { initializeLmApiHandler } from './server/handler'
@@ -6,66 +6,66 @@ import { serverManager } from './server/manager'
 import { statusBarManager } from './ui/statusbar'
 import { logger } from './utils/logger'
 
-// グローバルコンテキストの保存用変数
+// Variable to store global context
 let globalExtensionContext: vscode.ExtensionContext
 
-// グローバルモデルマネージャー変数
+// Global model manager variable
 let modelManager: any
 
-// モデルマネージャーを取得する関数をエクスポート
+// Export function to get model manager
 /**
- * モデルマネージャーのインスタンスを取得します。
- * @returns {any} モデルマネージャーのインスタンス
+ * Get the model manager instance.
+ * @returns {any} Model manager instance
  */
 export function getModelManager() {
   return modelManager
 }
 
 /**
- * VSCode拡張機能が有効化された際に呼び出されるエントリーポイントです。
- * グローバル変数や各種マネージャーの初期化、コマンド登録、設定監視、サーバー自動起動などを行います。
- * @param {vscode.ExtensionContext} context 拡張機能のグローバルコンテキスト
+ * Entry point called when the VSCode extension is activated.
+ * Initializes global variables and managers, registers commands, watches settings, and auto-starts server.
+ * @param {vscode.ExtensionContext} context Extension global context
  */
 export async function activate(context: vscode.ExtensionContext) {
-  // グローバル変数にコンテキストを保存
+  // Store context in global variable
   globalExtensionContext = context
 
-  // モデル管理クラスのインポートと初期化（グローバル変数に格納）
-  // activate内でrequireすることで循環依存を回避
+  // Import and initialize model management class (store in global variable)
+  // Import inside activate to avoid circular dependencies
   modelManager = require('./model/manager').modelManager
 
-  // モデルマネージャーにExtensionContextを設定
-  // これにより内部で保存されたモデル情報が復元される
+  // Set ExtensionContext to model manager
+  // This restores previously saved model info
   modelManager.setExtensionContext(context)
 
-  // LmApiHandlerにグローバル状態をセット
-  // VSCodeのグローバルストレージをAPIハンドラで利用可能にする
+  // Set global state to LmApiHandler
+  // Makes VSCode global storage available to API handlers
   initializeLmApiHandler(context.globalState)
 
-  // 設定に応じて出力パネルを表示
+  // Show output panel according to settings
   const config = vscode.workspace.getConfiguration('vscode-lm-proxy')
   const showOnStartup = config.get<boolean>('showOutputOnStartup', true)
   if (showOnStartup) {
-    logger.show(true) // フォーカスは現在のエディタに保持
+    logger.show(true) // Preserve focus on current editor
   }
 
-  // コンテキスト変数の初期化
+  // Initialize context variable
   vscode.commands.executeCommand(
     'setContext',
     'vscode-lm-proxy.serverRunning',
     false,
   )
 
-  // ステータスバーの初期化
+  // Initialize status bar
   statusBarManager.initialize(context)
 
-  // コマンドの登録
+  // Register commands
   registerCommands(context)
 
-  // 設定変更の監視
+  // Watch for configuration changes
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
-      // ポート番号変更時、サーバーが起動中なら再起動を促す
+      // Prompt restart if port number changes while server is running
       if (
         e.affectsConfiguration('vscode-lm-proxy.port') &&
         serverManager.isRunning()
@@ -77,8 +77,8 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   )
 
-  // 状態復元
-  // 以前サーバーが実行中だった場合は自動的に再起動
+  // State restoration
+  // Auto-restart if server was previously running
   const wasServerRunning = context.globalState.get<boolean>(
     'serverRunning',
     false,
@@ -96,7 +96,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   }
 
-  // 選択中のモデルとサーバー状態をログに出力
+  // Log selected model and server status
   const openaiModel = modelManager.getOpenAIModelId() || 'Not selected'
   const anthropicModel = modelManager.getAnthropicModelId() || 'Not selected'
   const claudeCodeBackgroundModel =
@@ -114,21 +114,21 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 /**
- * VSCode拡張機能が無効化された際に呼び出されるクリーンアップ関数です。
- * モデル情報やサーバー状態の保存、サーバー停止処理を行います。
- * @returns {Promise<void> | undefined} サーバー停止時はPromise、不要な場合はundefined
+ * Cleanup function called when the VSCode extension is deactivated.
+ * Saves model information and server state, and stops the server.
+ * @returns {Promise<void> | undefined} Promise when stopping server, undefined otherwise
  */
 export function deactivate(): Promise<void> | undefined {
   logger.info('LM Proxy extension deactivated')
 
-  // OpenAIモデル情報を保存（グローバル変数に格納されているモデルマネージャーを使用）
+  // Save OpenAI model information (using model manager stored in global variable)
   const openaiModelId = modelManager.getOpenAIModelId()
   const anthropicModelId = modelManager.getAnthropicModelId()
   const claudeCodeBackgroundModelId =
     modelManager.getClaudeCodeBackgroundModelId()
   const claudeCodeThinkingModelId = modelManager.getClaudeCodeThinkingModelId()
 
-  // グローバル状態へモデル情報と実行状態を保存
+  // Save model information and running state to global state
   globalExtensionContext.globalState.update('openaiModelId', openaiModelId)
   globalExtensionContext.globalState.update(
     'anthropicModelId',
@@ -147,7 +147,7 @@ export function deactivate(): Promise<void> | undefined {
     serverManager.isRunning(),
   )
 
-  // サーバーが実行中なら停止
+  // Stop server if running
   if (serverManager.isRunning()) {
     return serverManager.stop()
   }

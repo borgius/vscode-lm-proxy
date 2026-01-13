@@ -1,8 +1,8 @@
-// VSCode出力パネル用のロガークラス
+// Logger class for VSCode output panel
 import * as vscode from 'vscode'
 
 /**
- * ログレベルの定義
+ * Log level definition
  */
 export enum LogLevel {
   DEBUG = 0,
@@ -12,21 +12,21 @@ export enum LogLevel {
 }
 
 /**
- * VSCode出力パネルへのログ出力を管理するクラス
+ * Class to manage log output to VSCode output panel
  */
 export class Logger {
   private outputChannel: vscode.OutputChannel
   private currentLogLevel: LogLevel
 
   constructor() {
-    // 出力チャンネルの作成
+    // Create output channel
     this.outputChannel = vscode.window.createOutputChannel('LM Proxy')
 
-    // 設定からログレベルを取得（デフォルト：DEBUG）
+    // Get log level from settings (default: DEBUG)
     const config = vscode.workspace.getConfiguration('vscode-lm-proxy')
     this.currentLogLevel = config.get<LogLevel>('logLevel') ?? LogLevel.DEBUG
 
-    // 現在のログレベルを表示
+    // Display current log level
     this.outputChannel.appendLine(
       this.formatMessage(
         'INFO',
@@ -42,7 +42,7 @@ export class Logger {
       )
     }
 
-    // 設定変更を監視
+    // Watch for configuration changes
     vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('vscode-lm-proxy.logLevel')) {
         const config = vscode.workspace.getConfiguration('vscode-lm-proxy')
@@ -59,8 +59,8 @@ export class Logger {
   }
 
   /**
-   * 現在のタイムスタンプを取得
-   * @returns フォーマットされたタイムスタンプ
+   * Get current timestamp
+   * @returns Formatted timestamp
    */
   private getTimestamp(): string {
     const now = new Date()
@@ -68,27 +68,27 @@ export class Logger {
   }
 
   /**
-   * メッセージをフォーマットする
-   * @param level ログレベル
-   * @param message メッセージ
-   * @returns フォーマットされたメッセージ
+   * Format a message
+   * @param level Log level
+   * @param message Message
+   * @returns Formatted message
    */
   private formatMessage(level: string, message: string): string {
-    // 日付の括弧をトルツメ（例: 2025-06-25T06:00:00.000Z [INFO] ...）
+    // Remove date brackets (e.g., 2025-06-25T06:00:00.000Z [INFO] ...)
     return `${this.getTimestamp()} [${level}] ${message}`
   }
 
   /**
-   * 出力チャンネルを表示する
-   * @param preserveFocus フォーカスを現在のエディタに保持するかどうか
+   * Show the output channel
+   * @param preserveFocus Whether to preserve focus on current editor
    */
   public show(preserveFocus = true): void {
     this.outputChannel.show(preserveFocus)
   }
 
   /**
-   * DEBUGレベルのログを出力
-   * @param message ログメッセージまたはオブジェクト
+   * Output DEBUG level log
+   * @param message Log message or object
    */
   public debug(...args: any[]): void {
     if (this.currentLogLevel <= LogLevel.DEBUG) {
@@ -102,8 +102,8 @@ export class Logger {
   }
 
   /**
-   * INFOレベルのログを出力
-   * @param message ログメッセージまたはオブジェクト
+   * Output INFO level log
+   * @param message Log message or object
    */
   public info(...args: any[]): void {
     if (this.currentLogLevel <= LogLevel.INFO) {
@@ -117,8 +117,8 @@ export class Logger {
   }
 
   /**
-   * WARNレベルのログを出力
-   * @param message ログメッセージまたはオブジェクト
+   * Output WARN level log
+   * @param message Log message or object
    */
   public warn(...args: any[]): void {
     if (this.currentLogLevel <= LogLevel.WARN) {
@@ -132,9 +132,9 @@ export class Logger {
   }
 
   /**
-   * ERRORレベルのログを出力
-   * @param message ログメッセージまたはオブジェクト
-   * @param error エラーオブジェクト（オプション）
+   * Output ERROR level log
+   * @param message Log message or object
+   * @param error Error object (optional)
    */
   public error(...args: any[]): void {
     let errorObj: Error | undefined
@@ -157,24 +157,24 @@ export class Logger {
   }
 
   /**
-   * 出力チャンネルをクリア
+   * Clear output channel
    */
   public clear(): void {
     this.outputChannel.clear()
   }
 
   /**
-   * JSONデータをログ用に整形
-   * @param data 表示するJSONデータ
-   * @param indent インデントを付けるかどうか
-   * @returns 整形されたJSON文字列
+   * Format JSON data for logging
+   * @param data JSON data to display
+   * @param indent Whether to add indentation
+   * @returns Formatted JSON string
    */
   private formatJSONForLog(data: any, indent = true): string {
     try {
-      // 編集可能なコピーを作成
+      // Create an editable copy
       const dataCopy = this.sanitizeForLog(JSON.parse(JSON.stringify(data)))
 
-      // インデントを付けて整形（読みやすさ向上）
+      // Format with indentation (for readability)
       const jsonStr = indent
         ? JSON.stringify(dataCopy, null, 2)
         : JSON.stringify(dataCopy)
@@ -186,22 +186,22 @@ export class Logger {
   }
 
   /**
-   * ログ出力用にオブジェクトを整形（機密情報のマスクなど）
-   * @param obj 整形するオブジェクト
-   * @returns 整形されたオブジェクト
+   * Format object for log output (mask sensitive info, etc.)
+   * @param obj Object to format
+   * @returns Formatted object
    */
   private sanitizeForLog(obj: any): any {
-    // まだオブジェクトでない場合はそのまま返す
+    // Return as is if not an object
     if (typeof obj !== 'object' || obj === null) {
       return obj
     }
 
-    // 配列の場合は各要素を再帰的に処理
+    // Recursively process each element if array
     if (Array.isArray(obj)) {
       return obj.map(item => this.sanitizeForLog(item))
     }
 
-    // APIキーの値など、機密情報をマスク
+    // Mask sensitive information like API key values
     const sensitiveKeys = [
       'api_key',
       'apiKey',
@@ -212,24 +212,24 @@ export class Logger {
     ]
     const result: any = {}
 
-    // オブジェクトのプロパティを処理
+    // Process object properties
     for (const key in obj) {
       if (Object.hasOwn(obj, key)) {
-        // 機密キーの場合は値をマスク
+        // Mask value for sensitive keys
         if (sensitiveKeys.includes(key.toLowerCase())) {
           result[key] = '*****'
         }
-        // メッセージ配列は内容を表示
+        // Show message array contents
         else if (
           key === 'messages' &&
           Array.isArray(obj[key]) &&
           obj[key].length > 0
         ) {
-          // メッセージの詳細を残すが、長いコンテンツは短縮
+          // Keep message details but truncate long content
           result[key] = obj[key].map((msg: any) => {
             if (msg && typeof msg === 'object') {
               const msgCopy = { ...msg }
-              // コンテンツが長い場合は短縮
+              // Truncate if content is long
               if (
                 msgCopy.content &&
                 typeof msgCopy.content === 'string' &&
@@ -242,11 +242,11 @@ export class Logger {
             return msg
           })
         }
-        // 深いネストのオブジェクトは短縮
+        // Truncate deeply nested objects
         else if (typeof obj[key] === 'object' && obj[key] !== null) {
           result[key] = this.sanitizeForLog(obj[key])
         }
-        // それ以外はそのまま
+        // Otherwise keep as is
         else {
           result[key] = obj[key]
         }
@@ -257,5 +257,5 @@ export class Logger {
   }
 }
 
-// シングルトンインスタンスをエクスポート
+// Export singleton instance
 export const logger = new Logger()

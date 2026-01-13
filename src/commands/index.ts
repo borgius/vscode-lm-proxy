@@ -1,20 +1,20 @@
-// コマンド定義のインデックスファイル
+// Commands definition index file
 import type * as vscode from 'vscode'
 import { registerModelCommands } from './model'
 import { registerOutputCommands } from './output'
 import { registerServerCommands } from './server'
 
 /**
- * 拡張機能で利用する全コマンドを一括登録します。
- * @param {vscode.ExtensionContext} context 拡張機能のグローバルコンテキスト
+ * Register all commands used by the extension.
+ * @param {vscode.ExtensionContext} context Extension global context
  */
 export function registerCommands(context: vscode.ExtensionContext): void {
-  // サーバー関連のコマンドを登録
+  // Register server-related commands
   registerServerCommands(context)
 
-  // モデル選択関連のコマンドを登録
+  // Register model selection-related commands
   registerModelCommands(context)
 
-  // 出力パネル関連のコマンドを登録
+  // Register output panel-related commands
   registerOutputCommands(context)
 }

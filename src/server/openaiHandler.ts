@@ -17,42 +17,42 @@ import { logger } from '../utils/logger'
 import { getVSCodeModel } from './handler'
 
 /**
- * OpenAI互換のChat Completions APIエンドポイントを設定する
- * @param {express.Express} app Express.jsアプリケーション
+ * Sets up OpenAI compatible Chat Completions API endpoints
+ * @param {express.Express} app Express.js application
  * @returns {void}
  */
 export function setupOpenAIChatCompletionsEndpoints(
   app: express.Express,
 ): void {
-  // OpenAI API互換エンドポイントを登録
+  // Register OpenAI API compatible endpoints
   app.post('/openai/chat/completions', handleOpenAIChatCompletions)
   app.post('/openai/v1/chat/completions', handleOpenAIChatCompletions)
 }
 
 /**
- * OpenAI互換のModels APIエンドポイントを設定する
- * @param {express.Express} app Express.jsアプリケーション
+ * Sets up OpenAI compatible Models API endpoints
+ * @param {express.Express} app Express.js application
  * @returns {void}
  */
 export function setupOpenAIModelsEndpoints(app: express.Express): void {
-  // モデル一覧エンドポイント
+  // Model list endpoint
   app.get('/openai/models', handleOpenAIModels)
   app.get('/openai/v1/models', handleOpenAIModels)
 
-  // 特定モデル情報エンドポイント
+  // Specific model info endpoint
   app.get('/openai/models/:model', handleOpenAIModelInfo)
   app.get('/openai/v1/models/:model', handleOpenAIModelInfo)
 }
 
 /**
- * OpenAI互換のChat Completions APIリクエストを処理するメイン関数。
- * - リクエストバリデーション
- * - モデル取得
- * - LM APIへのリクエスト送信
- * - ストリーミング/非ストリーミングレスポンス処理
- * - エラーハンドリング
- * @param {express.Request} req リクエスト
- * @param {express.Response} res レスポンス
+ * Main handler function for OpenAI compatible Chat Completions API requests.
+ * - Request validation
+ * - Model retrieval
+ * - Sending request to LM API
+ * - Streaming/non-streaming response processing
+ * - Error handling
+ * @param {express.Request} req Request
+ * @param {express.Response} res Response
  * @returns {Promise<void>}
  */
 async function handleOpenAIChatCompletions(
@@ -63,23 +63,23 @@ async function handleOpenAIChatCompletions(
     const body = req.body as ChatCompletionCreateParams
     logger.debug('Received request', { body })
 
-    // 必須フィールドのバリデーション
+    // Validate required fields
     validateChatCompletionRequest(body)
 
-    // モデル取得
+    // Get model
     const { vsCodeModel } = await getVSCodeModel(body.model, 'openai')
 
-    // ストリーミングモード判定
+    // Determine streaming mode
     const isStreaming = body.stream === true
 
-    // OpenAIリクエスト→VSCode LM API形式変換
+    // Convert OpenAI request to VSCode LM API format
     const { messages, options, inputTokens } =
       await convertOpenAIRequestToVSCodeRequest(body, vsCodeModel)
 
-    // キャンセラレーショントークン作成
+    // Create cancellation token
     const cancellationToken = new vscode.CancellationTokenSource().token
 
-    // LM APIへリクエスト送信
+    // Send request to LM API
     const response = await vsCodeModel.sendRequest(
       messages,
       options,
@@ -87,7 +87,7 @@ async function handleOpenAIChatCompletions(
     )
     logger.debug('Received response from LM API')
 
-    // レスポンスをOpenAI形式に変換
+    // Convert response to OpenAI format
     const openAIResponse = convertVSCodeResponseToOpenAIResponse(
       response,
       vsCodeModel,
@@ -100,7 +100,7 @@ async function handleOpenAIChatCompletions(
       isStreaming,
     })
 
-    // ストリーミングレスポンス処理
+    // Handle streaming response
     if (isStreaming) {
       await handleStreamingResponse(
         res,
@@ -110,7 +110,7 @@ async function handleOpenAIChatCompletions(
       return
     }
 
-    // 非ストリーミングレスポンス処理
+    // Handle non-streaming response
     const completion = await (openAIResponse as Promise<ChatCompletion>)
     logger.debug('completion', { completion })
     res.json(completion)
@@ -123,12 +123,12 @@ async function handleOpenAIChatCompletions(
 }
 
 /**
- * Chat Completions APIリクエストの必須フィールドをバリデーションする
+ * Validates required fields for Chat Completions API request
  * @param {ChatCompletionCreateParams} body
- * @throws エラー時は例外をスロー
+ * @throws Exception on error
  */
 function validateChatCompletionRequest(body: ChatCompletionCreateParams) {
-  // messagesフィールドの存在と配列チェック
+  // Check messages field presence and array type
   if (
     !body.messages ||
     !Array.isArray(body.messages) ||
@@ -142,7 +142,7 @@ function validateChatCompletionRequest(body: ChatCompletionCreateParams) {
     throw error
   }
 
-  // modelフィールドの存在チェック
+  // Check model field presence
   if (!body.model) {
     const error: vscode.LanguageModelError = {
       ...new Error('The model field is required'),
@@ -154,7 +154,7 @@ function validateChatCompletionRequest(body: ChatCompletionCreateParams) {
 }
 
 /**
- * ストリーミングレスポンスを処理し、クライアントに送信する
+ * Processes streaming response and sends to client
  * @param {express.Response} res
  * @param {AsyncIterable<ChatCompletionChunk>} stream
  * @param {string} reqPath
@@ -173,7 +173,7 @@ async function handleStreamingResponse(
   let chunkIndex = 0
 
   try {
-    // ストリーミングレスポンスを逐次送信
+    // Send streaming responses sequentially
     for await (const chunk of stream) {
       const data = JSON.stringify(chunk)
       res.write(`data: ${data}\n\n`)
@@ -182,7 +182,7 @@ async function handleStreamingResponse(
       )
     }
 
-    // 正常終了
+    // Normal completion
     res.write('data: [DONE]\n\n')
     logger.debug('Streaming ended', {
       stream: 'end',
@@ -190,7 +190,7 @@ async function handleStreamingResponse(
       chunkCount: chunkIndex,
     })
   } catch (error) {
-    // エラー発生時はOpenAI互換エラーを送信し、ストリームを終了
+    // On error, send OpenAI compatible error and end stream
     const { apiError } = handleChatCompletionError(
       error as vscode.LanguageModelError,
     )
@@ -198,13 +198,13 @@ async function handleStreamingResponse(
     res.write('data: [DONE]\n\n')
     logger.error('Streaming error', { error, path: reqPath })
   } finally {
-    // ストリーム終了
+    // End stream
     res.end()
   }
 }
 
 /**
- * VSCode LanguageModelError を OpenAI API 互換エラー形式に変換し、ログ出力する
+ * Converts VSCode LanguageModelError to OpenAI API compatible error format and logs
  * @param {vscode.LanguageModelError} error
  * @returns { statusCode: number, apiError: APIError }
  */
@@ -220,13 +220,13 @@ function handleChatCompletionError(error: vscode.LanguageModelError): {
     stack: error.stack,
   })
 
-  // 変数を定義
+  // Define variables
   let statusCode = 500
   let type = 'api_error'
   let code = error.code || 'internal_error'
   let param: string | null = null
 
-  // LanguageModelError.name に応じてマッピング
+  // Map based on LanguageModelError.name
   switch (error.name) {
     case 'InvalidMessageFormat':
     case 'InvalidModel':
@@ -265,7 +265,7 @@ function handleChatCompletionError(error: vscode.LanguageModelError): {
       break
   }
 
-  // OpenAI互換エラー形式で返却
+  // Return OpenAI compatible error format
   const apiError: APIError = {
     code,
     message: error.message || 'An unknown error has occurred',
@@ -283,9 +283,9 @@ function handleChatCompletionError(error: vscode.LanguageModelError): {
 }
 
 /**
- * OpenAI互換のモデル一覧リクエストを処理する
- * @param {express.Request} req リクエスト
- * @param {express.Response} res レスポンス
+ * Handles OpenAI compatible model list requests
+ * @param {express.Request} req Request
+ * @param {express.Response} res Response
  * @returns {Promise<void>}
  */
 async function handleOpenAIModels(
@@ -293,10 +293,10 @@ async function handleOpenAIModels(
   res: express.Response,
 ) {
   try {
-    // 利用可能なモデルを取得
+    // Get available models
     const availableModels = await modelManager.getAvailableModels()
 
-    // OpenAI API形式に変換
+    // Convert to OpenAI API format
     const now = Math.floor(Date.now() / 1000)
     const modelsData: Model[] = availableModels.map(model => ({
       id: model.id,
@@ -305,7 +305,7 @@ async function handleOpenAIModels(
       owned_by: model.vendor || 'vscode',
     }))
 
-    // プロキシモデルIDも追加
+    // Add proxy model ID
     modelsData.push({
       id: 'vscode-lm-proxy',
       object: 'model',
@@ -322,7 +322,7 @@ async function handleOpenAIModels(
   } catch (error: any) {
     logger.error(`OpenAI Models API error: ${error.message}`, error as Error)
 
-    // エラーレスポンスの作成
+    // Create error response
     const statusCode = error.statusCode || 500
     const errorResponse = {
       error: {
@@ -337,9 +337,9 @@ async function handleOpenAIModels(
 }
 
 /**
- * OpenAI互換の単一モデル情報リクエストを処理する
- * @param {express.Request} req リクエスト
- * @param {express.Response} res レスポンス
+ * Handles OpenAI compatible single model info requests
+ * @param {express.Request} req Request
+ * @param {express.Response} res Response
  * @returns {Promise<void>}
  */
 async function handleOpenAIModelInfo(
@@ -350,7 +350,7 @@ async function handleOpenAIModelInfo(
     const modelId = req.params.model
 
     if (modelId === 'vscode-lm-proxy') {
-      // vscode-lm-proxyの場合、固定情報を返す
+      // Return fixed info for vscode-lm-proxy
       const now = Math.floor(Date.now() / 1000)
       const openAIModel: Model = {
         id: 'vscode-lm-proxy',
@@ -362,10 +362,10 @@ async function handleOpenAIModelInfo(
       return
     }
 
-    // LM APIからモデル情報を取得
+    // Get model info from LM API
     const vsCodeModel = await modelManager.getModelInfo(modelId)
 
-    // モデルが存在しない場合はエラーをスロー
+    // Throw error if model doesn't exist
     if (!vsCodeModel) {
       throw {
         ...new Error(`Model ${modelId} not found`),
@@ -374,7 +374,7 @@ async function handleOpenAIModelInfo(
       }
     }
 
-    // OpenAI API形式に変換
+    // Convert to OpenAI API format
     const openAIModel: Model = {
       id: vsCodeModel.id,
       object: 'model',
@@ -382,7 +382,7 @@ async function handleOpenAIModelInfo(
       owned_by: vsCodeModel.vendor || 'vscode',
     }
 
-    // レスポンスを返却
+    // Return response
     res.json(openAIModel)
   } catch (error: any) {
     logger.error(
@@ -390,7 +390,7 @@ async function handleOpenAIModelInfo(
       error as Error,
     )
 
-    // エラーレスポンスの作成
+    // Create error response
     const statusCode = error.statusCode || 500
     const errorResponse = {
       error: {

@@ -1,20 +1,20 @@
-// モデル管理クラス
+// Model management class
 import * as vscode from 'vscode'
 import { logger } from '../utils/logger'
 
 /**
- * モデル管理クラス
- * VSCode Language Model APIへのアクセスとモデル選択を管理します。
+ * Model management class
+ * Manages access to VSCode Language Model API and model selection.
  */
 class ModelManager {
-  // VSCode ExtensionContext（グローバルState用）
+  // VSCode ExtensionContext (for global state)
   private extensionContext: vscode.ExtensionContext | null = null
   /**
-   * ExtensionContextをセット（グローバルState利用のため）
+   * Set ExtensionContext (for global state usage)
    */
   public setExtensionContext(context: vscode.ExtensionContext) {
     this.extensionContext = context
-    // 起動時に保存済みモデル情報があれば復元
+    // Restore saved model info on startup
     const savedOpenAIModelId = context.globalState.get<string>('openaiModelId')
     if (savedOpenAIModelId) {
       this.openaiModelId = savedOpenAIModelId
@@ -37,10 +37,10 @@ class ModelManager {
       this.claudeCodeThinkingModelId = savedClaudeCodeThinkingModelId
     }
   }
-  // 選択中のOpenAIモデルID
+  // Selected OpenAI model ID
   private openaiModelId: string | null = null
 
-  // 選択中のAnthropicモデルID
+  // Selected Anthropic model ID
   private anthropicModelId: string | null = null
 
   // Claude Code Background Model
@@ -49,7 +49,7 @@ class ModelManager {
   // Claude Code Thinking Model
   private claudeCodeThinkingModelId: string | null = null
 
-  // サポートするモデルファミリー
+  // Supported model families
   private supportedFamilies = [
     'gpt-4o',
     'gpt-4o-mini',
@@ -58,33 +58,33 @@ class ModelManager {
     'claude-3.5-sonnet',
   ]
 
-  // OpenAIモデル変更時のイベントエミッター
+  // Event emitter for OpenAI model change
   private readonly _onDidChangeOpenAIModelId = new vscode.EventEmitter<void>()
   public readonly onDidChangeOpenAIModelId =
     this._onDidChangeOpenAIModelId.event
 
-  // Anthropicモデル変更時のイベントエミッター
+  // Event emitter for Anthropic model change
   private readonly _onDidChangeAnthropicModelId =
     new vscode.EventEmitter<void>()
   public readonly onDidChangeAnthropicModelId =
     this._onDidChangeAnthropicModelId.event
 
-  // Claude Code Background Model変更時のイベントエミッター
+  // Event emitter for Claude Code Background Model change
   private readonly _onDidChangeClaudeCodeBackgroundModelId =
     new vscode.EventEmitter<void>()
   public readonly onDidChangeClaudeCodeBackgroundModelId =
     this._onDidChangeClaudeCodeBackgroundModelId.event
 
-  // Claude Code Thinking Model変更時のイベントエミッター
+  // Event emitter for Claude Code Thinking Model change
   private readonly _onDidChangeClaudeCodeThinkingModelId =
     new vscode.EventEmitter<void>()
   public readonly onDidChangeClaudeCodeThinkingModelId =
     this._onDidChangeClaudeCodeThinkingModelId.event
 
   /**
-   * 利用可能なモデルからモデルを選択する
-   * @param provider APIプロバイダー（'openAI' または 'anthropic'）
-   * @returns 選択したモデルのID
+   * Select a model from available models
+   * @param provider API provider ('openAI' or 'anthropic')
+   * @returns The selected model ID
    */
   public async selectModel(
     provider:
@@ -94,15 +94,15 @@ class ModelManager {
       | 'claudeCodeThinking',
   ): Promise<string | undefined> {
     try {
-      // サポートされているモデルが見つかるまで順番に試す
+      // Try each supported model until one is found
       let allModels: vscode.LanguageModelChat[] = []
 
-      // まず、指定せずにすべてのモデルを取得してみる
+      // First, try to get all models without specifying
       const defaultModels = await vscode.lm.selectChatModels({})
       if (defaultModels && defaultModels.length > 0) {
         allModels = defaultModels
       } else {
-        // モデルが見つからなかった場合は、ファミリーごとに試行
+        // If no models found, try each family
         for (const family of this.supportedFamilies) {
           const familyModels = await vscode.lm.selectChatModels({ family })
           if (familyModels && familyModels.length > 0) {
@@ -116,13 +116,13 @@ class ModelManager {
         return undefined
       }
 
-      // モデル選択用のQuickPickアイテムを作成
+      // Create QuickPick items for model selection
       const quickPickItems = allModels.map(model => ({
         label: model.name,
         description: `${model.id} by ${model.vendor || 'Unknown vendor'}`,
         detail: `Max input tokens: ${model.maxInputTokens || 'Unknown'}, Version: ${model.version}`,
         model: model,
-        // 右端に「Copy ID」テキストを追加
+        // Add "Copy ID" button on the right
         buttons: [
           {
             iconPath: new vscode.ThemeIcon('copy'),
@@ -131,14 +131,14 @@ class ModelManager {
         ],
       }))
 
-      // QuickPickを使ってユーザーにモデルを選択させる
+      // Let user select a model using QuickPick
       const quickPick = vscode.window.createQuickPick()
       quickPick.items = quickPickItems
       quickPick.placeholder = 'Select a model to use'
       quickPick.matchOnDescription = true
       quickPick.matchOnDetail = true
 
-      // ボタンクリックのイベントハンドラを設定
+      // Set button click event handler
       quickPick.onDidTriggerItemButton(event => {
         const modelId = (event.item as any).model.id
         vscode.env.clipboard.writeText(modelId)
@@ -147,16 +147,16 @@ class ModelManager {
         )
       })
 
-      // QuickPickを表示
+      // Show QuickPick
       quickPick.show()
 
-      // Promise化して結果を返す
+      // Promisify and return result
       return new Promise<string | undefined>(resolve => {
-        // モデル選択時の処理
+        // Handle model selection
         quickPick.onDidAccept(() => {
           const selectedItem = quickPick.selectedItems[0] as any
           if (selectedItem) {
-            // providerによって保存先を分岐
+            // Branch save destination by provider
             let providerLabel = ''
             if (provider === 'openAI') {
               this.setOpenAIModelId(selectedItem.model.id)
@@ -180,12 +180,12 @@ class ModelManager {
               providerLabel = 'Claude Code Thinking'
             }
 
-            // モデル変更を通知（英語表記）
+            // Notify model change
             vscode.window.showInformationMessage(
               `${providerLabel} model has been changed to "${selectedItem.model.name}".`,
             )
 
-            // QuickPickを閉じて選択結果を返す
+            // Close QuickPick and return selection result
             quickPick.dispose()
             resolve(selectedItem.model.id as string)
           } else {
@@ -194,7 +194,7 @@ class ModelManager {
           }
         })
 
-        // QuickPickがキャンセルされた場合の処理
+        // Handle QuickPick cancel
         quickPick.onDidHide(() => {
           quickPick.dispose()
           resolve(undefined)
@@ -213,8 +213,8 @@ class ModelManager {
   }
 
   /**
-   * 現在選択されているモデルIDを取得
-   * @returns モデルID
+   * Get the currently selected model ID
+   * @returns Model ID
    */
   public getOpenAIModelId(): string | null {
     return this.openaiModelId
@@ -233,40 +233,40 @@ class ModelManager {
   }
 
   /**
-   * モデルIDを直接設定する
-   * @param modelId 設定するモデルID
+   * Set the model ID directly
+   * @param modelId Model ID to set
    */
   public setOpenAIModelId(modelId: string): void {
     this.openaiModelId = modelId
-    // 永続化
+    // Persist
     if (this.extensionContext) {
       this.extensionContext.globalState.update(
         'openaiModelId',
         this.openaiModelId,
       )
     }
-    // OpenAIモデル変更イベントを発火
+    // Fire OpenAI model change event
     this._onDidChangeOpenAIModelId.fire()
   }
 
   /**
-   * 選択中のAnthropicモデルIDをセット・保存
+   * Set and save the selected Anthropic model ID
    */
   public setAnthropicModelId(modelId: string): void {
     this.anthropicModelId = modelId
-    // 永続化
+    // Persist
     if (this.extensionContext) {
       this.extensionContext.globalState.update(
         'anthropicModelId',
         this.anthropicModelId,
       )
     }
-    // 必要ならイベント発火
+    // Fire event if needed
     this._onDidChangeAnthropicModelId.fire()
   }
 
   /**
-   * Claude Code Background Model IDをセット・保存
+   * Set and save Claude Code Background Model ID
    */
   public setClaudeCodeBackgroundModelId(modelId: string): void {
     this.claudeCodeBackgroundModelId = modelId
@@ -280,7 +280,7 @@ class ModelManager {
   }
 
   /**
-   * Claude Code Thinking Model IDをセット・保存
+   * Set and save Claude Code Thinking Model ID
    */
   public setClaudeCodeThinkingModelId(modelId: string): void {
     this.claudeCodeThinkingModelId = modelId
@@ -294,28 +294,28 @@ class ModelManager {
   }
 
   /**
-   * デフォルトモデルを取得
-   * @returns デフォルトモデルのID
+   * Get the default model
+   * @returns Default model ID
    */
   public getDefaultModel(): string | null {
     return this.openaiModelId
   }
 
   /**
-   * 利用可能なすべてのモデルを取得する
-   * @returns VSCode LM APIから取得した生のモデルリスト
+   * Get all available models
+   * @returns Raw model list from VSCode LM API
    */
   public async getAvailableModels(): Promise<vscode.LanguageModelChat[]> {
     try {
-      // サポートされているモデルを取得
+      // Get supported models
       let allModels: vscode.LanguageModelChat[] = []
 
-      // まず、指定せずにすべてのモデルを取得
+      // First, get all models without specifying
       const defaultModels = await vscode.lm.selectChatModels({})
       if (defaultModels && defaultModels.length > 0) {
         allModels = defaultModels
       } else {
-        // モデルが見つからなかった場合は、ファミリーごとに試行
+        // If no models found, try each family
         for (const family of this.supportedFamilies) {
           const familyModels = await vscode.lm.selectChatModels({ family })
           if (familyModels && familyModels.length > 0) {
@@ -335,20 +335,20 @@ class ModelManager {
   }
 
   /**
-   * 特定のモデル情報を取得する
-   * @param modelId モデルID
-   * @returns VSCode LMモデルインスタンスまたはプロキシモデルの場合はnull
+   * Get information for a specific model
+   * @param modelId Model ID
+   * @returns VSCode LM model instance or null for proxy model
    */
   public async getModelInfo(
     modelId: string,
   ): Promise<vscode.LanguageModelChat | null> {
     try {
-      // vscode-lm-proxyの場合は特別扱い
+      // Special handling for vscode-lm-proxy
       if (modelId === 'vscode-lm-proxy') {
-        return null // プロキシモデルはVSCode LMモデルインスタンスを持たない
+        return null // Proxy model has no VSCode LM model instance
       }
 
-      // 指定されたIDのモデルを取得
+      // Get the model with the specified ID
       const [model] = await vscode.lm.selectChatModels({ id: modelId })
 
       if (!model) {
@@ -373,5 +373,5 @@ class ModelManager {
   }
 }
 
-// シングルトンインスタンスをエクスポート
+// Export singleton instance
 export const modelManager = new ModelManager()

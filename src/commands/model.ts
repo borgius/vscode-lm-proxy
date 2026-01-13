@@ -1,24 +1,24 @@
-// モデル選択コマンド
+// Model selection commands
 import * as vscode from 'vscode'
 import { modelManager } from '../model/manager'
 import { serverManager } from '../server/manager'
 import { statusBarManager } from '../ui/statusbar'
 
 /**
- * モデル選択関連のコマンド（選択・再起動）をVSCodeに登録します。
- * @param {vscode.ExtensionContext} context 拡張機能のグローバルコンテキスト
+ * Register model selection-related commands (select, restart) to VSCode.
+ * @param {vscode.ExtensionContext} context Extension global context
  */
 export function registerModelCommands(context: vscode.ExtensionContext): void {
-  // OpenAI APIモデル選択コマンド
+  // OpenAI API model selection command
   const selectOpenAIModelCommand = vscode.commands.registerCommand(
     'vscode-lm-proxy.selectOpenAIModel',
     async () => {
       try {
-        // モデル選択ダイアログを表示
+        // Show model selection dialog
         const openaiModelId = await modelManager.selectModel('openAI')
 
         if (openaiModelId) {
-          // モデルIDを設定
+          // Set model ID
           context.globalState.update('openaiModelId', openaiModelId)
           vscode.window.showInformationMessage(
             `OpenAI Model selected: ${openaiModelId}`,
@@ -32,16 +32,16 @@ export function registerModelCommands(context: vscode.ExtensionContext): void {
     },
   )
 
-  // Anthropicモデル選択コマンド
+  // Anthropic model selection command
   const selectAnthropicModelCommand = vscode.commands.registerCommand(
     'vscode-lm-proxy.selectAnthropicModel',
     async () => {
       try {
-        // モデル選択ダイアログを表示
+        // Show model selection dialog
         const anthropicModelId = await modelManager.selectModel('anthropic')
 
         if (anthropicModelId) {
-          // モデルIDを設定
+          // Set model ID
           context.globalState.update('anthropicModelId', anthropicModelId)
           vscode.window.showInformationMessage(
             `Anthropic Model selected: ${anthropicModelId}`,
@@ -55,7 +55,7 @@ export function registerModelCommands(context: vscode.ExtensionContext): void {
     },
   )
 
-  // Claude Code Backgroundモデル選択コマンド
+  // Claude Code Background model selection command
   const selectClaudeCodeBackgroundModelCommand =
     vscode.commands.registerCommand(
       'vscode-lm-proxy.selectClaudeCodeBackgroundModel',
@@ -81,7 +81,7 @@ export function registerModelCommands(context: vscode.ExtensionContext): void {
       },
     )
 
-  // Claude Code Thinkingモデル選択コマンド
+  // Claude Code Thinking model selection command
   const selectClaudeCodeThinkingModelCommand = vscode.commands.registerCommand(
     'vscode-lm-proxy.selectClaudeCodeThinkingModel',
     async () => {
@@ -105,7 +105,7 @@ export function registerModelCommands(context: vscode.ExtensionContext): void {
     },
   )
 
-  // コンテキストにコマンドを登録
+  // Register commands to context
   context.subscriptions.push(
     selectOpenAIModelCommand,
     selectAnthropicModelCommand,
@@ -113,21 +113,21 @@ export function registerModelCommands(context: vscode.ExtensionContext): void {
     selectClaudeCodeThinkingModelCommand,
   )
 
-  // 前回選択されたOpenAIモデルを復元
+  // Restore previously selected OpenAI model
   const previouslySelectedOpenAIModelId =
     context.globalState.get<string>('openaiModelId')
   if (previouslySelectedOpenAIModelId) {
     modelManager.setOpenAIModelId(previouslySelectedOpenAIModelId)
   }
 
-  // 前回選択されたAnthropicモデルを復元
+  // Restore previously selected Anthropic model
   const previouslySelectedAnthropicModelId =
     context.globalState.get<string>('anthropicModelId')
   if (previouslySelectedAnthropicModelId) {
     modelManager.setAnthropicModelId(previouslySelectedAnthropicModelId)
   }
 
-  // 前回選択されたClaude Code Backgroundモデルを復元
+  // Restore previously selected Claude Code Background model
   const previouslySelectedClaudeCodeBackgroundModelId =
     context.globalState.get<string>('claudeCodeBackgroundModelId')
   if (previouslySelectedClaudeCodeBackgroundModelId) {
@@ -136,7 +136,7 @@ export function registerModelCommands(context: vscode.ExtensionContext): void {
     )
   }
 
-  // 前回選択されたClaude Code Thinkingモデルを復元
+  // Restore previously selected Claude Code Thinking model
   const previouslySelectedClaudeCodeThinkingModelId =
     context.globalState.get<string>('claudeCodeThinkingModelId')
   if (previouslySelectedClaudeCodeThinkingModelId) {
@@ -145,6 +145,6 @@ export function registerModelCommands(context: vscode.ExtensionContext): void {
     )
   }
 
-  // ステータスバーを更新
+  // Update status bar
   statusBarManager.updateStatus(serverManager.isRunning())
 }

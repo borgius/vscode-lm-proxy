@@ -1,21 +1,21 @@
-// ステータスバーの管理
+// Status bar management
 import * as vscode from 'vscode'
 import { modelManager } from '../model/manager'
 import { serverManager } from '../server/manager'
 
 /**
- * ステータスバー管理クラス
- * サーバーの状態とモデル情報をVS Codeステータスバーに表示します。
+ * Status bar management class
+ * Displays server status and model information in VS Code status bar.
  */
 class StatusBarManager {
   private statusBarItem: vscode.StatusBarItem | undefined
 
   /**
-   * ステータスバーを初期化
-   * @param context 拡張機能のコンテキスト
+   * Initialize the status bar
+   * @param context Extension context
    */
   public initialize(context: vscode.ExtensionContext): void {
-    // ステータスバーアイテムを作成
+    // Create status bar item
     this.statusBarItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Right,
       100,
@@ -24,34 +24,34 @@ class StatusBarManager {
     this.statusBarItem.command = 'vscode-lm-proxy.showStatusMenu'
     this.statusBarItem.tooltip = 'Language Model Proxy'
 
-    // 初期状態を設定
+    // Set initial state
     this.updateStatus(false)
 
-    // ステータスバーを表示
+    // Show status bar
     this.statusBarItem.show()
 
-    // モデル変更イベントをリッスン
+    // Listen for model change events
     context.subscriptions.push(
       modelManager.onDidChangeOpenAIModelId(() => {
-        // OpenAIモデルが変更されたらステータスバーを更新
+        // Update status bar when OpenAI model changes
         this.updateStatus(serverManager.isRunning())
       }),
     )
 
-    // ステータスメニューコマンドを登録
+    // Register status menu command
     const statusMenuCommand = vscode.commands.registerCommand(
       'vscode-lm-proxy.showStatusMenu',
       this.showStatusMenu.bind(this),
     )
 
-    // コンテキストに登録
+    // Register to context
     context.subscriptions.push(this.statusBarItem, statusMenuCommand)
   }
 
   /**
-   * サーバー状態に応じてステータスバーを更新
-   * @param isRunning サーバーが実行中かどうか
-   * @param errorMessage エラーメッセージ（オプション）
+   * Update status bar according to server state
+   * @param isRunning Whether server is running
+   * @param errorMessage Error message (optional)
    */
   public updateStatus(isRunning: boolean, errorMessage?: string): void {
     if (!this.statusBarItem) {
@@ -59,14 +59,14 @@ class StatusBarManager {
     }
 
     if (errorMessage) {
-      // エラー状態
+      // Error state
       this.statusBarItem.text = '$(error) LM Proxy'
       this.statusBarItem.backgroundColor = new vscode.ThemeColor(
         'statusBarItem.errorBackground',
       )
       this.statusBarItem.tooltip = `Server: Error - ${errorMessage}`
     } else if (isRunning) {
-      // 実行中
+      // Running
       this.statusBarItem.text = '$(server) LM Proxy'
       this.statusBarItem.backgroundColor = new vscode.ThemeColor(
         'statusBarItem.warningBackground',
@@ -74,7 +74,7 @@ class StatusBarManager {
       const url = serverManager.getServerUrl()
       this.statusBarItem.tooltip = `Server: Running (${url})`
     } else {
-      // 停止中
+      // Stopped
       this.statusBarItem.text = '$(stop) LM Proxy'
       this.statusBarItem.backgroundColor = undefined
       this.statusBarItem.tooltip = 'Server: Stopped'
@@ -82,12 +82,12 @@ class StatusBarManager {
   }
 
   /**
-   * ステータスメニューを表示
+   * Show status menu
    */
   private async showStatusMenu(): Promise<void> {
     const isRunning = serverManager.isRunning()
 
-    // メニュー項目を準備
+    // Prepare menu items
     const items: Array<{
       label: string
       description: string
@@ -108,7 +108,7 @@ class StatusBarManager {
       })
     }
 
-    // モデル選択メニュー項目を追加
+    // Add model selection menu items
     const currentOpenAIModelId = modelManager.getOpenAIModelId()
     items.push({
       label: '$(gear) OpenAI API Model',
@@ -147,17 +147,17 @@ class StatusBarManager {
       command: 'vscode-lm-proxy.selectClaudeCodeThinkingModel',
     })
 
-    // メニューを表示
+    // Show menu
     const selected = await vscode.window.showQuickPick(items, {
       placeHolder: 'Select LM Proxy Operation',
     })
 
-    // 選択されたコマンドを実行
+    // Execute selected command
     if (selected) {
       await vscode.commands.executeCommand(selected.command)
     }
   }
 }
 
-// シングルトンインスタンスをエクスポート
+// Export singleton instance
 export const statusBarManager = new StatusBarManager()

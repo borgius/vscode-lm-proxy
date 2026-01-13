@@ -1,24 +1,24 @@
-// 共通ハンドラー処理
+// Common handler processing
 
 import type express from 'express'
 import * as vscode from 'vscode'
 import { modelManager } from '../model/manager'
 import { logger } from '../utils/logger'
 
-// モジュールスコープでglobalStateを管理
+// Manage globalState at module scope
 let _globalState: vscode.Memento | undefined
 
 /**
- * globalStateを初期化する
- * @param {vscode.Memento} state VSCodeのグローバルステート
+ * Initialize globalState
+ * @param {vscode.Memento} state VSCode global state
  */
 export function initializeLmApiHandler(state: vscode.Memento) {
   _globalState = state
 }
 
 /**
- * サーバーのステータス確認用エンドポイントを設定します。
- * @param {express.Express} app Express.jsアプリケーション
+ * Set up status check endpoint for the server.
+ * @param {express.Express} app Express.js application
  */
 export function setupStatusEndpoint(app: express.Express): void {
   app.get('/', (_req: express.Request, res: express.Response) => {
@@ -30,10 +30,10 @@ export function setupStatusEndpoint(app: express.Express): void {
 }
 
 /**
- * VSCode LM APIのモデルを取得する（'vscode-lm-proxy'時は選択中のOpenAIモデルに変換）
+ * Get VSCode LM API model (converts 'vscode-lm-proxy' to selected OpenAI model)
  * @param {OpenAI.ChatCompletionCreateParams} body
  * @returns {Promise<{ model: any, modelId: string }>}
- * @throws エラー時は例外をスロー
+ * @throws Throws exception on error
  */
 export async function getVSCodeModel(
   modelId: string,
@@ -42,7 +42,7 @@ export async function getVSCodeModel(
   try {
     let selectedModelId: string | null = modelId
 
-    // modelIdが'vscode-lm-proxy'の場合は選択中のモデルIDに変換（providerごとに分岐）
+    // Convert 'vscode-lm-proxy' to selected model ID (branch by provider)
     if (modelId === 'vscode-lm-proxy') {
       if (provider === 'openai') {
         selectedModelId = modelManager.getOpenAIModelId()
@@ -55,7 +55,7 @@ export async function getVSCodeModel(
       }
     }
 
-    // providerが'claude'の場合は、モデルIDに含まれる文字列を元にモデルを分岐
+    // For 'claude' provider, branch model based on string in modelId
     if (provider === 'claude') {
       if (modelId.includes('haiku')) {
         selectedModelId = modelManager.getClaudeCodeBackgroundModelId()
@@ -66,7 +66,7 @@ export async function getVSCodeModel(
 
     logger.debug('Selected model ID:', selectedModelId)
 
-    // モデル取得
+    // Get model
     const [vsCodeModel] = await vscode.lm.selectChatModels({
       id: selectedModelId as string,
     })
@@ -76,10 +76,10 @@ export async function getVSCodeModel(
       throw new Error(`Model ${selectedModelId} not found`)
     }
 
-    // モデルが見つかった場合はそのまま返す
+    // Return model as-is if found
     return { vsCodeModel, vsCodeModelId: vsCodeModel.id }
   } catch (e: any) {
-    // VSCodeのLanguageModelError形式でラップしてスロー
+    // Wrap and throw as VSCode LanguageModelError format
     const error: vscode.LanguageModelError = {
       ...new Error(e?.message || 'Unknown error'),
       name: 'NotFound',
@@ -90,9 +90,9 @@ export async function getVSCodeModel(
 }
 
 /**
- * VSCodeのLanguageModelTextPart型ガード
- * @param part 判定対象
- * @returns {boolean} partがLanguageModelTextPart型ならtrue
+ * VSCode LanguageModelTextPart type guard
+ * @param part Target to check
+ * @returns {boolean} true if part is LanguageModelTextPart type
  */
 export function isTextPart(
   part: unknown,
@@ -101,9 +101,9 @@ export function isTextPart(
 }
 
 /**
- * VSCodeのLanguageModelToolCallPart型ガード
- * @param part 判定対象
- * @returns {boolean} partがLanguageModelToolCallPart型ならtrue
+ * VSCode LanguageModelToolCallPart type guard
+ * @param part Target to check
+ * @returns {boolean} true if part is LanguageModelToolCallPart type
  */
 export function isToolCallPart(
   part: unknown,

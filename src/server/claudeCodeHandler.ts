@@ -7,8 +7,8 @@ import {
 } from './anthropicHandler'
 
 /**
- * Claude Code互換のMessages APIエンドポイントを設定する
- * @param {express.Express} app Express.jsアプリケーション
+ * Set up Claude Code-compatible Messages API endpoints
+ * @param {express.Express} app Express.js application
  * @returns {void}
  */
 export function setupClaudeCodeMessagesEndpoints(app: express.Express): void {
@@ -28,16 +28,16 @@ export function setupClaudeCodeMessagesEndpoints(app: express.Express): void {
 }
 
 /**
- * Claude Code互換のModels APIエンドポイントを設定する
- * @param {express.Express} app Express.jsアプリケーション
+ * Set up Claude Code-compatible Models API endpoints
+ * @param {express.Express} app Express.js application
  * @returns {void}
  */
 export function setupClaudeCodeModelsEndpoints(app: express.Express): void {
-  // モデル一覧エンドポイント
+  // Model list endpoint
   app.get('/anthropic/claude/models', handleAnthropicModels)
   app.get('/anthropic/claude/v1/models', handleAnthropicModels)
 
-  // 特定モデル情報エンドポイント
+  // Specific model info endpoint
   app.get('/anthropic/claude/models/:model', handleAnthropicModelInfo)
   app.get('/anthropic/claude/v1/models/:model', handleAnthropicModelInfo)
 }

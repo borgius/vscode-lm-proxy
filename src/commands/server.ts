@@ -1,14 +1,14 @@
-// サーバー制御コマンド
+// Server control commands
 import * as vscode from 'vscode'
 import { serverManager } from '../server/manager'
 import { statusBarManager } from '../ui/statusbar'
 
 /**
- * サーバー関連のコマンド（起動・停止・状態取得）をVSCodeに登録します。
- * @param {vscode.ExtensionContext} context 拡張機能のグローバルコンテキスト
+ * Register server-related commands (start, stop, status) to VSCode.
+ * @param {vscode.ExtensionContext} context Extension global context
  */
 export function registerServerCommands(context: vscode.ExtensionContext): void {
-  // サーバー起動コマンド
+  // Server start command
   const startServerCommand = vscode.commands.registerCommand(
     'vscode-lm-proxy.startServer',
     async () => {
@@ -20,7 +20,7 @@ export function registerServerCommands(context: vscode.ExtensionContext): void {
           'vscode-lm-proxy.serverRunning',
           true,
         )
-        // ステータスバーを更新
+        // Update status bar
         statusBarManager.updateStatus(true)
         const serverUrl = serverManager.getServerUrl()
         vscode.window.showInformationMessage(
@@ -34,7 +34,7 @@ export function registerServerCommands(context: vscode.ExtensionContext): void {
     },
   )
 
-  // サーバー停止コマンド
+  // Server stop command
   const stopServerCommand = vscode.commands.registerCommand(
     'vscode-lm-proxy.stopServer',
     async () => {
@@ -46,7 +46,7 @@ export function registerServerCommands(context: vscode.ExtensionContext): void {
           'vscode-lm-proxy.serverRunning',
           false,
         )
-        // ステータスバーを更新
+        // Update status bar
         statusBarManager.updateStatus(false)
         vscode.window.showInformationMessage(
           'Language Model Proxy server stopped',
@@ -59,6 +59,6 @@ export function registerServerCommands(context: vscode.ExtensionContext): void {
     },
   )
 
-  // コンテキストにコマンドを登録
+  // Register commands to context
   context.subscriptions.push(startServerCommand, stopServerCommand)
 }

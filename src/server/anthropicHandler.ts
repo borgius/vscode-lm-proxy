@@ -18,12 +18,12 @@ import { logger } from '../utils/logger'
 import { getVSCodeModel } from './handler'
 
 /**
- * Anthropic互換のMessages APIエンドポイントを設定する
- * @param {express.Express} app Express.jsアプリケーション
+ * Set up Anthropic-compatible Messages API endpoints
+ * @param {express.Express} app Express.js application
  * @returns {void}
  */
 export function setupAnthropicMessagesEndpoints(app: express.Express): void {
-  // Anthropic API互換エンドポイントを登録
+  // Register Anthropic API-compatible endpoints
   app.post('/anthropic/messages', (req, res) =>
     handleAnthropicMessages(req, res, 'anthropic'),
   )
@@ -36,29 +36,29 @@ export function setupAnthropicMessagesEndpoints(app: express.Express): void {
 }
 
 /**
- * Anthropic互換のModels APIエンドポイントを設定する
- * @param {express.Express} app Express.jsアプリケーション
+ * Set up Anthropic-compatible Models API endpoints
+ * @param {express.Express} app Express.js application
  * @returns {void}
  */
 export function setupAnthropicModelsEndpoints(app: express.Express): void {
-  // モデル一覧エンドポイント
+  // Model list endpoint
   app.get('/anthropic/models', handleAnthropicModels)
   app.get('/anthropic/v1/models', handleAnthropicModels)
 
-  // 特定モデル情報エンドポイント
+  // Specific model info endpoint
   app.get('/anthropic/models/:model', handleAnthropicModelInfo)
   app.get('/anthropic/v1/models/:model', handleAnthropicModelInfo)
 }
 
 /**
- * Anthropic互換のMessages APIリクエストを処理するメイン関数。
- * - リクエストバリデーション
- * - モデル取得
- * - LM APIへのリクエスト送信
- * - ストリーミング/非ストリーミングレスポンス処理
- * - エラーハンドリング
- * @param {express.Request} req リクエスト
- * @param {express.Response} res レスポンス
+ * Main function to handle Anthropic-compatible Messages API requests.
+ * - Request validation
+ * - Model retrieval
+ * - Send request to LM API
+ * - Streaming/non-streaming response handling
+ * - Error handling
+ * @param {express.Request} req Request
+ * @param {express.Response} res Response
  * @returns {Promise<void>}
  */
 export async function handleAnthropicMessages(
@@ -70,23 +70,23 @@ export async function handleAnthropicMessages(
     const body = req.body as MessageCreateParams
     logger.debug('Received request', { body })
 
-    // 必須フィールドのバリデーション
+    // Validate required fields
     validateMessagesRequest(body)
 
-    // モデル取得
+    // Get model
     const { vsCodeModel } = await getVSCodeModel(body.model, provider)
 
-    // ストリーミングモード判定
+    // Determine streaming mode
     const isStreaming = body.stream === true
 
-    //Anthropicリクエスト→VSCode LM API形式変換
+    // Convert Anthropic request to VSCode LM API format
     const { messages, options, inputTokens } =
       await convertAnthropicRequestToVSCodeRequest(body, vsCodeModel)
 
-    // キャンセラレーショントークン作成
+    // Create cancellation token
     const cancellationToken = new vscode.CancellationTokenSource().token
 
-    // LM APIへリクエスト送信
+    // Send request to LM API
     const response = await vsCodeModel.sendRequest(
       messages,
       options,
@@ -94,7 +94,7 @@ export async function handleAnthropicMessages(
     )
     logger.debug('Received response from LM API')
 
-    // レスポンスをAnthropic形式に変換
+    // Convert response to Anthropic format
     const anthropicResponse = convertVSCodeResponseToAnthropicResponse(
       response,
       vsCodeModel,
@@ -107,7 +107,7 @@ export async function handleAnthropicMessages(
       isStreaming,
     })
 
-    // ストリーミングレスポンス処理
+    // Streaming response processing
     if (isStreaming) {
       await handleStreamingResponse(
         res,
@@ -117,7 +117,7 @@ export async function handleAnthropicMessages(
       return
     }
 
-    // 非ストリーミングレスポンス処理
+    // Non-streaming response processing
     const message = await (anthropicResponse as Promise<Message>)
     logger.debug('message', { message })
     res.json(message)
@@ -130,12 +130,12 @@ export async function handleAnthropicMessages(
 }
 
 /**
- * Messages APIリクエストの必須フィールドをバリデーションする
+ * Validate required fields in Messages API request
  * @param {MessageCreateParams} body
- * @throws エラー時は例外をスロー
+ * @throws Throws exception on error
  */
 function validateMessagesRequest(body: MessageCreateParams) {
-  // messagesフィールドの存在と配列チェック
+  // Check messages field existence and array type
   if (
     !body.messages ||
     !Array.isArray(body.messages) ||
@@ -149,7 +149,7 @@ function validateMessagesRequest(body: MessageCreateParams) {
     throw error
   }
 
-  // modelフィールドの存在チェック
+  // Check model field existence
   if (!body.model) {
     const error: vscode.LanguageModelError = {
       ...new Error('The model field is required'),
@@ -161,7 +161,7 @@ function validateMessagesRequest(body: MessageCreateParams) {
 }
 
 /**
- * ストリーミングレスポンスを処理し、クライアントに送信する
+ * Process streaming response and send to client
  * @param {express.Response} res
  * @param {AsyncIterable<RawMessageStreamEvent>} stream
  * @param {string} reqPath
@@ -180,7 +180,7 @@ async function handleStreamingResponse(
   let chunkIndex = 0
 
   try {
-    // ストリーミングレスポンスを逐次送信
+    // Send streaming response sequentially
     for await (const chunk of stream) {
       const data = JSON.stringify(chunk)
       res.write(`data: ${data}\n\n`)
@@ -188,13 +188,13 @@ async function handleStreamingResponse(
       chunkIndex++
     }
 
-    // 正常終了
+    // Normal completion
     logger.debug('Streaming ended', {
       path: reqPath,
       chunkCount: chunkIndex,
     })
   } catch (error) {
-    // エラー発生時はAnthropic互換エラーを送信し、ストリームを終了
+    // Send Anthropic-compatible error and end stream on error
     const { errorObject } = handleMessageError(
       error as vscode.LanguageModelError,
     )
@@ -203,13 +203,13 @@ async function handleStreamingResponse(
     )
     logger.error('Streaming error', { error, path: reqPath })
   } finally {
-    // ストリーム終了
+    // End stream
     res.end()
   }
 }
 
 /**
- * VSCode LanguageModelError を Anthropic 互換エラー形式に変換し、ログ出力する
+ * Convert VSCode LanguageModelError to Anthropic-compatible error format and log
  * @param {vscode.LanguageModelError} error
  * @returns { statusCode: number, errorObject: ErrorObject }
  */
@@ -225,12 +225,12 @@ function handleMessageError(error: vscode.LanguageModelError): {
     stack: error.stack,
   })
 
-  // 変数を定義
+  // Define variables
   let statusCode = 500
   let type: ErrorObject['type'] = 'api_error'
   let message = error.message || 'An unknown error has occurred'
 
-  // LanguageModelError.name に応じてマッピング
+  // Map according to LanguageModelError.name
   switch (error.name) {
     case 'InvalidMessageFormat':
     case 'InvalidModel':
@@ -254,7 +254,7 @@ function handleMessageError(error: vscode.LanguageModelError): {
       type = 'rate_limit_error'
       break
     case 'Error': {
-      // エラーコード（数値）とJSON部分を抽出し、変数に格納
+      // Extract error code (number) and JSON part, store in variables
       const match = error.message.match(/Request Failed: (\d+)\s+({.*})/)
 
       if (match) {
@@ -277,7 +277,7 @@ function handleMessageError(error: vscode.LanguageModelError): {
       break
   }
 
-  // Anthropic互換エラー形式で返却
+  // Return in Anthropic-compatible error format
   const errorObject: ErrorObject = {
     type,
     message,
@@ -287,9 +287,9 @@ function handleMessageError(error: vscode.LanguageModelError): {
 }
 
 /**
- * Anthropic互換のモデル一覧リクエストを処理する
- * @param {express.Request} req リクエスト
- * @param {express.Response} res レスポンス
+ * Handle Anthropic-compatible model list request
+ * @param {express.Request} req Request
+ * @param {express.Response} res Response
  * @returns {Promise<void>}
  */
 export async function handleAnthropicModels(
@@ -297,10 +297,10 @@ export async function handleAnthropicModels(
   res: express.Response,
 ) {
   try {
-    // 利用可能なモデルを取得
+    // Get available models
     const availableModels = await modelManager.getAvailableModels()
 
-    // Anthropic API形式に変換
+    // Convert to Anthropic API format
     const now = Math.floor(Date.now() / 1000)
     const modelsData: ModelInfo[] = availableModels.map(model => ({
       created_at: now.toString(),
@@ -309,7 +309,7 @@ export async function handleAnthropicModels(
       type: 'model',
     }))
 
-    // プロキシモデルIDも追加
+    // Add proxy model ID
     modelsData.push({
       created_at: now.toString(),
       display_name: 'VSCode LM Proxy',
@@ -328,7 +328,7 @@ export async function handleAnthropicModels(
   } catch (error: any) {
     logger.error(`Anthropic Models API error: ${error.message}`, error as Error)
 
-    // エラーレスポンスの作成
+    // Create error response
     const statusCode = error.statusCode || 500
     const errorResponse = {
       type: 'error',
@@ -343,10 +343,10 @@ export async function handleAnthropicModels(
 }
 
 /**
- * Anthropic互換のトークン数カウントAPIリクエストを処理する
- * @param {express.Request} req リクエスト
- * @param {express.Response} res レスポンス
- * @param {string} provider プロバイダー ('anthropic' | 'claude')
+ * Handle Anthropic-compatible token count API request
+ * @param {express.Request} req Request
+ * @param {express.Response} res Response
+ * @param {string} provider Provider ('anthropic' | 'claude')
  * @returns {Promise<void>}
  */
 export async function handleAnthropicCountTokens(
@@ -358,10 +358,10 @@ export async function handleAnthropicCountTokens(
     const body = req.body as MessageCreateParams
     logger.debug('Received count_tokens request', { body })
 
-    // VSCodeモデル取得
+    // Get VSCode model
     const { vsCodeModel } = await getVSCodeModel(body.model, provider)
 
-    // 対象テキストを定義
+    // Define target text
     let inputTokens = 0
 
     // messages
@@ -409,13 +409,13 @@ export async function handleAnthropicCountTokens(
       }
     }
 
-    // レスポンスオブジェクトを作成
+    // Create response object
     const messageTokenCount: MessageTokensCount = {
       input_tokens: inputTokens,
     }
     logger.debug({ messageTokenCount })
 
-    // レスポンス返却
+    // Return response
     res.json(messageTokenCount)
   } catch (error) {
     const { statusCode, errorObject } = handleMessageError(
@@ -426,9 +426,9 @@ export async function handleAnthropicCountTokens(
 }
 
 /**
- * Anthropic互換の単一モデル情報リクエストを処理する
- * @param {express.Request} req リクエスト
- * @param {express.Response} res レスポンス
+ * Handle Anthropic-compatible single model info request
+ * @param {express.Request} req Request
+ * @param {express.Response} res Response
  * @returns {Promise<void>}
  */
 export async function handleAnthropicModelInfo(
@@ -439,7 +439,7 @@ export async function handleAnthropicModelInfo(
     const modelId = req.params.model
 
     if (modelId === 'vscode-lm-proxy') {
-      // vscode-lm-proxyの場合、固定情報を返す
+      // Return fixed info for vscode-lm-proxy
       const anthropicModel: ModelInfo = {
         created_at: Math.floor(Date.now() / 1000).toString(),
         display_name: 'VSCode LM Proxy',
@@ -450,10 +450,10 @@ export async function handleAnthropicModelInfo(
       return
     }
 
-    // LM APIからモデル情報を取得
+    // Get model info from LM API
     const vsCodeModel = await modelManager.getModelInfo(modelId)
 
-    // モデルが存在しない場合はエラーをスロー
+    // Throw error if model does not exist
     if (!vsCodeModel) {
       throw {
         ...new Error(`Model ${modelId} not found`),
@@ -462,7 +462,7 @@ export async function handleAnthropicModelInfo(
       }
     }
 
-    // Anthropic API形式に変換
+    // Convert to Anthropic API format
     const anthropicModel: ModelInfo = {
       created_at: Math.floor(Date.now() / 1000).toString(),
       display_name: vsCodeModel.name,
@@ -470,7 +470,7 @@ export async function handleAnthropicModelInfo(
       type: 'model',
     }
 
-    // レスポンスを返却
+    // Return response
     res.json(anthropicModel)
   } catch (error: any) {
     logger.error(
@@ -478,7 +478,7 @@ export async function handleAnthropicModelInfo(
       error as Error,
     )
 
-    // エラーレスポンスの作成
+    // Create error response
     const statusCode = error.statusCode || 500
     const errorResponse = {
       type: 'error',
