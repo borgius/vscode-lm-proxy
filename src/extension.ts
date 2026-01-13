@@ -78,12 +78,14 @@ export async function activate(context: vscode.ExtensionContext) {
   )
 
   // State restoration
-  // Auto-restart if server was previously running
+  // Auto-restart if server was previously running OR autoStart is enabled
   const wasServerRunning = context.globalState.get<boolean>(
     'serverRunning',
     false,
   )
-  if (wasServerRunning) {
+  const autoStart = config.get<boolean>('autoStart', false)
+
+  if (wasServerRunning || autoStart) {
     await serverManager.start().catch(err => {
       vscode.window.showErrorMessage(
         `Failed to auto-start server: ${err.message}`,
@@ -91,9 +93,11 @@ export async function activate(context: vscode.ExtensionContext) {
     })
 
     const serverUrl = serverManager.getServerUrl()
-    vscode.window.showInformationMessage(
-      `Language Model Proxy server started (${serverUrl})`,
-    )
+    if (serverUrl) {
+      vscode.window.showInformationMessage(
+        `Language Model Proxy server started (${serverUrl})`,
+      )
+    }
   }
 
   // Log selected model and server status

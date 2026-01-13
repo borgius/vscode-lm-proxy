@@ -9,6 +9,7 @@ import { serverManager } from '../server/manager'
  */
 class StatusBarManager {
   private statusBarItem: vscode.StatusBarItem | undefined
+  private _currentPort: number | undefined
 
   /**
    * Initialize the status bar
@@ -34,7 +35,11 @@ class StatusBarManager {
     context.subscriptions.push(
       modelManager.onDidChangeOpenAIModelId(() => {
         // Update status bar when OpenAI model changes
-        this.updateStatus(serverManager.isRunning())
+        this.updateStatus(
+          serverManager.isRunning(),
+          undefined,
+          this._currentPort,
+        )
       }),
     )
 
@@ -52,11 +57,18 @@ class StatusBarManager {
    * Update status bar according to server state
    * @param isRunning Whether server is running
    * @param errorMessage Error message (optional)
+   * @param port Current port number (optional)
    */
-  public updateStatus(isRunning: boolean, errorMessage?: string): void {
+  public updateStatus(
+    isRunning: boolean,
+    errorMessage?: string,
+    port?: number,
+  ): void {
     if (!this.statusBarItem) {
       return
     }
+
+    this._currentPort = port
 
     if (errorMessage) {
       // Error state
@@ -65,8 +77,16 @@ class StatusBarManager {
         'statusBarItem.errorBackground',
       )
       this.statusBarItem.tooltip = `Server: Error - ${errorMessage}`
+    } else if (isRunning && port) {
+      // Running with port number
+      this.statusBarItem.text = `$(server) LM Proxy :${port}`
+      this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+        'statusBarItem.warningBackground',
+      )
+      const url = serverManager.getServerUrl()
+      this.statusBarItem.tooltip = `Server: Running (${url})\nClick to copy endpoint URLs`
     } else if (isRunning) {
-      // Running
+      // Running (legacy fallback)
       this.statusBarItem.text = '$(server) LM Proxy'
       this.statusBarItem.backgroundColor = new vscode.ThemeColor(
         'statusBarItem.warningBackground',
@@ -86,12 +106,14 @@ class StatusBarManager {
    */
   private async showStatusMenu(): Promise<void> {
     const isRunning = serverManager.isRunning()
+    const baseUrl = serverManager.getServerUrl()
 
     // Prepare menu items
     const items: Array<{
       label: string
       description: string
-      command: string
+      command?: string
+      action?: () => Promise<void>
     }> = []
 
     if (isRunning) {
@@ -100,6 +122,39 @@ class StatusBarManager {
         description: 'Stop LM Proxy server',
         command: 'vscode-lm-proxy.stopServer',
       })
+
+      // Add copy URL options when running
+      if (baseUrl) {
+        items.push({
+          label: '$(copy) Copy OpenAI Base URL',
+          description: `${baseUrl}/openai/v1`,
+          action: async () => {
+            const url = `${baseUrl}/openai/v1`
+            await vscode.env.clipboard.writeText(url)
+            vscode.window.showInformationMessage(`Copied OpenAI URL: ${url}`)
+          },
+        })
+        items.push({
+          label: '$(copy) Copy Anthropic Base URL',
+          description: `${baseUrl}/anthropic/v1`,
+          action: async () => {
+            const url = `${baseUrl}/anthropic/v1`
+            await vscode.env.clipboard.writeText(url)
+            vscode.window.showInformationMessage(`Copied Anthropic URL: ${url}`)
+          },
+        })
+        items.push({
+          label: '$(copy) Copy Claude Code Base URL',
+          description: `${baseUrl}/anthropic/claude/v1`,
+          action: async () => {
+            const url = `${baseUrl}/anthropic/claude/v1`
+            await vscode.env.clipboard.writeText(url)
+            vscode.window.showInformationMessage(
+              `Copied Claude Code URL: ${url}`,
+            )
+          },
+        })
+      }
     } else {
       items.push({
         label: '$(play) Start Server',
@@ -152,9 +207,13 @@ class StatusBarManager {
       placeHolder: 'Select LM Proxy Operation',
     })
 
-    // Execute selected command
+    // Execute selected command or action
     if (selected) {
-      await vscode.commands.executeCommand(selected.command)
+      if (selected.action) {
+        await selected.action()
+      } else if (selected.command) {
+        await vscode.commands.executeCommand(selected.command)
+      }
     }
   }
 }

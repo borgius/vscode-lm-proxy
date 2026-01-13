@@ -14,6 +14,7 @@ import {
 } from '../converter/openaiConverter'
 import { modelManager } from '../model/manager'
 import { logger } from '../utils/logger'
+import { getAgentById } from './agentsHandler'
 import { getVSCodeModel } from './handler'
 
 /**
@@ -45,6 +46,14 @@ export function setupOpenAIModelsEndpoints(app: express.Express): void {
 }
 
 /**
+ * Extended request body with optional agent field
+ */
+type ExtendedChatCompletionBody = ChatCompletionCreateParams & {
+  /** Optional agent identifier to route request to specific agent */
+  agent?: string
+}
+
+/**
  * Main handler function for OpenAI compatible Chat Completions API requests.
  * - Request validation
  * - Model retrieval
@@ -60,8 +69,21 @@ async function handleOpenAIChatCompletions(
   res: express.Response,
 ) {
   try {
-    const body = req.body as ChatCompletionCreateParams
+    const body = req.body as ExtendedChatCompletionBody
     logger.debug('Received request', { body })
+
+    // Validate required fields
+    validateChatCompletionRequest(body)
+
+    // Log agent if specified
+    if (body.agent) {
+      const agentInfo = await getAgentById(body.agent)
+      if (agentInfo) {
+        logger.info(`Using agent: ${agentInfo.name} (${agentInfo.id})`)
+      } else {
+        logger.warn(`Agent '${body.agent}' not found, proceeding without agent`)
+      }
+    }
 
     // Validate required fields
     validateChatCompletionRequest(body)

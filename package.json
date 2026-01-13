@@ -1,7 +1,7 @@
 {
   "name": "lm-proxy-responses",
   "displayName": "LM Proxy (responses)",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "Expose VSCode's GitHub Copilot capabilities through OpenAI, Anthropic, and Claude Code compatible REST APIs. Access GitHub Copilot from external applications using the VSCode Language Model API.",
   "categories": [
     "AI",
@@ -134,6 +134,11 @@
           "type": "boolean",
           "default": false,
           "description": "Whether to display the output panel when the extension starts"
+        },
+        "vscode-lm-proxy.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start the proxy server when VS Code starts"
         }
       }
     },

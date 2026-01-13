@@ -1,6 +1,7 @@
 // Express.js server configuration and API endpoint implementation
 import express from 'express'
 import { logger } from '../utils/logger'
+import { setupAgentsEndpoints } from './agentsHandler'
 import {
   setupAnthropicMessagesEndpoints,
   setupAnthropicModelsEndpoints,
@@ -47,6 +48,9 @@ export function createServer(): express.Express {
 
   // Setup server status endpoint
   setupStatusEndpoint(app)
+
+  // Setup agents endpoint
+  setupAgentsEndpoints(app)
 
   // Setup OpenAI compatible endpoints
   setupOpenAIChatCompletionsEndpoints(app)

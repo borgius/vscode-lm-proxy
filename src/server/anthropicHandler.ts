@@ -15,6 +15,7 @@ import {
 } from '../converter/anthropicConverter'
 import { modelManager } from '../model/manager'
 import { logger } from '../utils/logger'
+import { getAgentById } from './agentsHandler'
 import { getVSCodeModel } from './handler'
 
 /**
@@ -51,6 +52,14 @@ export function setupAnthropicModelsEndpoints(app: express.Express): void {
 }
 
 /**
+ * Extended request body with optional agent field
+ */
+type ExtendedMessageBody = MessageCreateParams & {
+  /** Optional agent identifier to route request to specific agent */
+  agent?: string
+}
+
+/**
  * Main function to handle Anthropic-compatible Messages API requests.
  * - Request validation
  * - Model retrieval
@@ -67,8 +76,21 @@ export async function handleAnthropicMessages(
   provider: 'anthropic' | 'claude',
 ) {
   try {
-    const body = req.body as MessageCreateParams
+    const body = req.body as ExtendedMessageBody
     logger.debug('Received request', { body })
+
+    // Validate required fields
+    validateMessagesRequest(body)
+
+    // Log agent if specified
+    if (body.agent) {
+      const agentInfo = await getAgentById(body.agent)
+      if (agentInfo) {
+        logger.info(`Using agent: ${agentInfo.name} (${agentInfo.id})`)
+      } else {
+        logger.warn(`Agent '${body.agent}' not found, proceeding without agent`)
+      }
+    }
 
     // Validate required fields
     validateMessagesRequest(body)
