@@ -22,7 +22,7 @@ An extension that enables external applications to access VSCode's GitHub Copilo
 2. Search for "LM Proxy".
 3. Click **Install**.
 
-Alternatively, you can download the `.vsix` file from the [releases page](https://github.com/ryonakae/vscode-lm-proxy/releases) and install it manually using the "Install from VSIX..." command.
+Alternatively, you can download the `.vsix` file from the [releases page](https://github.com/borgius/vscode-lm-proxy/releases) and install it manually using the "Install from VSIX..." command.
 
 ---
 
@@ -222,6 +222,20 @@ LM Proxy leverages the VSCode Language Model API (LM API) to communicate with Gi
 4. This enables seamless integration with existing applications and tools that are designed to work with these popular API formats
 
 This approach allows you to utilize the full power of GitHub Copilot in your applications without having to implement custom integrations.
+
+---
+
+## Acknowledgments
+
+This extension is a fork of the original [vscode-lm-proxy](https://github.com/ryonakae/vscode-lm-proxy) by [ryonakae](https://github.com/ryonakae). 
+
+**Main changes in this fork:**
+- Added support for OpenAI Responses API (`/openai/v1/responses` endpoint)
+- The Responses API provides a more structured way to interact with language models with support for system instructions and conversation history
+
+Special thanks to ryonakae for creating the original extension and making it possible to access GitHub Copilot through REST APIs.
+
+---
 
 ## License
 

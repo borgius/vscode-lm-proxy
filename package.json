@@ -1,7 +1,7 @@
 {
-  "name": "vscode-lm-proxy",
-  "displayName": "LM Proxy",
-  "version": "1.0.5",
+  "name": "lm-proxy-responses",
+  "displayName": "LM Proxy (responses)",
+  "version": "1.0.6",
   "description": "Expose VSCode's GitHub Copilot capabilities through OpenAI, Anthropic, and Claude Code compatible REST APIs. Access GitHub Copilot from external applications using the VSCode Language Model API.",
   "categories": [
     "AI",
@@ -31,19 +31,19 @@
     "chat",
     "streaming"
   ],
-  "homepage": "https://github.com/ryonakae/vscode-lm-proxy",
+  "homepage": "https://github.com/borgius/vscode-lm-proxy",
   "bugs": {
-    "url": "https://github.com/ryonakae/vscode-lm-proxy/issues"
+    "url": "https://github.com/borgius/vscode-lm-proxy/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ryonakae/vscode-lm-proxy.git"
+    "url": "https://github.com/borgius/vscode-lm-proxy.git"
   },
   "license": "MIT",
   "author": {
     "name": "Ryo Nakae"
   },
-  "publisher": "ryonakae",
+  "publisher": "borgius",
   "main": "./out/extension.js",
   "scripts": {
     "check": "biome check",
